@@ -1,62 +1,21 @@
 
-// Updates the sort indicator based on the current sort direction
-function updateSortIndicator(columnIndex, direction) {
-    var indicators = document.querySelectorAll('.sort-indicator');
-    indicators.forEach(function(indicator, index) {
-        indicator.innerHTML = index === columnIndex ? (direction === 'asc' ? '▼' : '▲') : '▼';
-    });
+// Example of storing fetched data
+let chartDataStore = {}; // A global variable to store fetched chart data
+
+
+// Assume this function is called when data is initially fetched
+function storeChartData(pair, ohlcvData) {
+
+    chartDataStore[pair] = ohlcvData;
 }
-// Sorts table columns
-function sortTable(n) {
-    var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-    table = document.getElementById("cryptoTable");
-    switching = true;
-    dir = "asc";
-
-    while (switching) {
-        switching = false;
-        rows = table.rows;
-
-        for (i = 1; i < (rows.length - 1); i++) {
-            shouldSwitch = false;
-            x = rows[i].getElementsByTagName("TD")[n];
-            y = rows[i + 1].getElementsByTagName("TD")[n];
-
-            if (dir == "asc") {
-                if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-                    shouldSwitch = true;
-                    break;
-                }
-            } else if (dir == "desc") {
-                if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-                    shouldSwitch = true;
-                    break;
-                }
-            }
-        }
-
-        if (shouldSwitch) {
-            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-            switching = true;
-            switchcount++;
-        } else if (switchcount == 0 && dir == "asc") {
-            dir = "desc";
-            switching = true;
-        }
-        updateSortIndicator(n, dir); // Update sort indicator direction
-    }
-}
-
 
 
 function generateSimpleLiteChart(pair, ohlcvData) {
     const chartDiv = document.getElementById(`screener_chart_${pair}`);
-    console.log('chartDiv', chartDiv);
-    console.log('ohlcvData', ohlcvData);
+
     const timestamps = ohlcvData.map(entry => new Date(entry.timestamp));
     const closes = ohlcvData.map(entry => entry.close);
-    console.log('timestamps', timestamps);
-    console.log('closes', closes);
+
     const trace = {
         x: timestamps,
         y: closes,
@@ -73,7 +32,13 @@ function generateSimpleLiteChart(pair, ohlcvData) {
 
     Plotly.newPlot(chartDiv, [trace], layout);
 }
-function generateFullChart(pair, ohlcvData) {
+
+function generateFullChart(pair, ohlcvData, smaPeriod = null, emaPeriod = null){
+    smaPeriod = smaPeriod || parseInt(document.getElementById('smaPeriodInput').value, 10) || 5;
+    emaPeriod = emaPeriod || parseInt(document.getElementById('emaPeriodInput').value, 10) || 20;
+
+
+
     const chartDiv = document.getElementById(`watcher_chart_${pair}`);
 
     // Convert timestamps to index for x-axis
@@ -84,12 +49,13 @@ function generateFullChart(pair, ohlcvData) {
     const lows = ohlcvData.map(entry => entry.low);
     const closes = ohlcvData.map(entry => entry.close);
 
+    
+
     // Simple Moving Average calculations
-    const sma5 = calculateSMA(closes, 5);
-    const sma20 = calculateSMA(closes, 20);
+    const sma = calculateSMA(closes, smaPeriod);
 
     // Exponential Moving Average calculation
-    const ema = calculateEMA(closes, 20); // Using 20 periods for EMA
+    const ema = calculateEMA(closes, emaPeriod); // Using 20 periods for EMA
 
     const candlestickTrace = {
         type: 'candlestick',
@@ -100,21 +66,14 @@ function generateFullChart(pair, ohlcvData) {
         close: closes
     };
 
-    const sma5Trace = {
+    const smaTrace = {
         x: xData, // Use indexing
-        y: sma5,
+        y: sma,
         mode: 'lines',
-        name: 'SMA 5',
+        name: 'SMA',
         line: { color: 'orange', width: 1 }
     };
 
-    const sma20Trace = {
-        x: xData, // Use indexing
-        y: sma20,
-        mode: 'lines',
-        name: 'SMA 20',
-        line: { color: 'green', width: 1 }
-    };
 
     const emaTrace = {
         x: xData, // Use indexing
@@ -150,7 +109,7 @@ function generateFullChart(pair, ohlcvData) {
         paper_bgcolor: '#f3f3f3', // Background color for the outside area
     };
 
-    Plotly.newPlot(chartDiv, [candlestickTrace, sma5Trace, sma20Trace, emaTrace], layout);
+    Plotly.newPlot(chartDiv, [candlestickTrace, smaTrace, emaTrace], layout);
 }
 
 // Utility function to calculate SMA

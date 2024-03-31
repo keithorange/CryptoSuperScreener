@@ -3,22 +3,31 @@
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/screener.css') }}">
 
+<!-- styling code inut python -->
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/mode/python/python.min.js"></script>
 
 {% endblock %}
 
 {% block content %}
 <h1>Crypto Pair Screener</h1>
-
 <div class="controls">
-    <button onclick="addAllToFavorites()">Add All to Favorites</button>
-    <button onclick="removeAllFavorites()">Remove All Favorites</button>
+    <button onclick="addAllToFavorites()" class="form-button">Add All to Favorites</button>
+    <button onclick="removeAllFavorites()" class="form-button">Remove All Favorites</button>
 
-    <div id="customFilter">
-        <input type="text" id="filterInput" placeholder="Enter filter function (e.g., 'df['close'] > 10')">
-        <button onclick="applyFilter()">Apply Filter</button>
+    <!-- Filter Section -->
+    <div id="customFilter" class="form-section">
+        <!-- Updated to a textarea to accommodate larger, multiline code -->
+        <textarea id="filterCode" placeholder="Enter filter function (e.g., 'x[\'bid_ask_spread\'] < 0.005')"></textarea>
+        <button onclick="applyFilter()" class="form-button">Apply Filter</button>
     </div>
-    <button onclick="refreshScreenerData()">Refresh Data</button>
+
+
+    <button onclick="refreshScreenerData()" class="form-button">Refresh Data</button>
 </div>
+
 
 
 <table id="cryptoTable" class="table">
@@ -41,7 +50,6 @@
 
             const pairs = await pairsResponse.json();
 
-            console.log('pairs', pairs);
 
             // Use the fetched pairs to refresh data
             const enrichedDataResponse = await fetch('/get_enriched_ohlcv', {
@@ -50,14 +58,20 @@
                 body: JSON.stringify({ pairs }) // Send the fetched pairs in the request body
             });
 
+
             if (!enrichedDataResponse.ok) throw new Error('Failed to refresh data');
 
             const enrichedData = await enrichedDataResponse.json();
 
-            console.log('enrichedData', enrichedData);
 
             // Assuming populateTableRows is implemented and properly uses the enriched data
             populateTableRows(enrichedData);
+
+            // add to local cache as well!
+            Object.entries(enrichedData).forEach(([pair, data]) => {
+                storeChartData(pair, data);
+            });
+
         } catch (error) {
             console.error('Error refreshing data:', error);
         } finally {
@@ -82,8 +96,6 @@
                 }
             });
 
-            console.log("ADDING FAVORITES: ", pairsToAdd);
-
             // Send POST request to add_favorites endpoint with the list of pairs
             fetch('/add_favorites', {
                 method: 'POST',
@@ -92,7 +104,6 @@
                 credentials: 'same-origin' // Ensure cookies/session is included in request
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data.message);
                     // Update the client-side favorites array and UI based on the response
                     favorites.push(...pairsToAdd);
                     pairsToAdd.forEach(pair => {
@@ -114,7 +125,6 @@
                 credentials: 'same-origin' // Ensure cookies/session is included in the request
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data.message);
                     // Clear the client-side favorites array
                     favorites.length = 0;
                     // Update UI accordingly, e.g., deactivate all favorite buttons
@@ -147,6 +157,16 @@
             const th = document.createElement('th');
             th.textContent = colName;
             headerRow.appendChild(th);
+
+            // Add sorting functionality to the header
+            th.addEventListener('click', () => {
+                sortTable(columnNames.indexOf(colName));
+            });
+
+            // Add a sorting icon to the header
+            const sortIcon = document.createElement('span');
+            sortIcon.className = 'sort-indicator';
+            th.appendChild(sortIcon);
         });
 
         // Columns for chart and favorites, these don't need sorting
@@ -188,7 +208,6 @@
             const averageVolatility = sumVolatility / actualLookbackPeriod;
 
             const latestData = data[data.length - 1]; // Get the most recent data point
-            console.log('latestData', latestData, 'fullData', data);
 
             const row = tbody.insertRow();
 
@@ -275,6 +294,87 @@
     }
 
 
+    // Updates the sort indicator based on the current sort direction
+    function updateSortIndicator(activeColumnIndex, direction) {
+        // Select all sort-indicator elements
+        var indicators = document.querySelectorAll('.sort-indicator');
+
+        // First, reset all indicators to a default state (e.g., hide them or set to a neutral icon)
+        indicators.forEach(function (indicator) {
+            indicator.innerHTML = ''; // Clears the indicator, effectively hiding it
+        });
+
+        // Set the indicator for the currently active column
+        var activeIndicator = indicators[activeColumnIndex];
+        if (activeIndicator) {
+            activeIndicator.innerHTML = direction === 'asc' ? '▼' : '▲';
+        }
+    }
+
+    // Sorts table columns
+    function sortTable(n) {
+        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        table = document.getElementById("cryptoTable");
+        switching = true;
+        dir = "asc";
+
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+
+            for (i = 1; i < (rows.length - 1); i++) {
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("TD")[n];
+                y = rows[i + 1].getElementsByTagName("TD")[n];
+
+                if (dir == "asc") {
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } else if (dir == "desc") {
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+            }
+
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount++;
+            } else if (switchcount == 0 && dir == "asc") {
+                dir = "desc";
+                switching = true;
+            }
+            updateSortIndicator(n, dir); // Update sort indicator direction
+        }
+    }
+
+
+    // Add this to the bottom of your script tag in index.html
+    var editor = CodeMirror.fromTextArea(document.getElementById('filterCode'), {
+        mode: 'python',
+        lineNumbers: true,
+        value: "// To use write something to filter the data by python lambda like: \nx['close'] > 10\n"
+    });
+
+    // Set default text if the editor is empty
+    editor.setValue("// To use write something to filter the data by python lambda like: \nx['close'] > 10\n");
+
+    // Focus and place cursor at the end of the default text
+    editor.focus();
+    editor.setCursor(editor.lineCount(), 0);
+
+    // Add an event listener to resize based on content
+    editor.on('change', function (instance) {
+        var totalLines = instance.lineCount();
+        var totalChars = instance.getValue().length;
+        var editorHeight = totalLines * 25; // Approx. line height in px
+        editorHeight = Math.max(editorHeight, 50); // Minimum height
+        instance.getWrapperElement().style.height = editorHeight + 'px';
+    });
 
 
     document.addEventListener('DOMContentLoaded', () => {

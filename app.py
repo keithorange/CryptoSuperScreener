@@ -1,3 +1,4 @@
+from flask import Flask, request
 import ast
 import os
 
@@ -86,6 +87,11 @@ async def process_in_batches(task_func, items, batch_size=10):
 async def get_enriched_ohlcv():
     data = request.get_json()
     pairs = data.get('pairs', [])
+    timeframe = data.get('timeframe', '15m')
+    if timeframe not in ['1m', '5m', '15m', '30m', '1h', '4h', '1d']:
+        return jsonify({'error': 'Invalid timeframe'}), 400
+    
+    length = data.get('length', 120)
 
     if not pairs:
         return jsonify({'error': 'No pairs provided'}), 400
@@ -94,7 +100,7 @@ async def get_enriched_ohlcv():
 
     async def fetch_and_process(pair):
         async with ccxt_async.kraken() as exchange:
-            ohlcv_df = await fetch_ohlcv_data_async(pair, exchange)
+            ohlcv_df = await fetch_ohlcv_data_async(pair, exchange, timeframe, length)
             return pair, add_custom_properties(ohlcv_df).to_dict('records')
 
     try:
@@ -209,6 +215,43 @@ def filter_data():
     except Exception as e:
         print(f"ERROR: {str(e)}")
         return jsonify({'error': f'Failed to apply filter: {str(e)}'}), 400
+
+
+# # Configure logging
+# logging.basicConfig(level=logging.DEBUG)
+
+# # Define a handler which writes INFO messages or higher to sys.stderr
+# console = logging.StreamHandler()
+# console.setLevel(logging.DEBUG)
+
+# # Set a format which is simpler for console use
+# formatter = logging.Formatter(
+#     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# console.setFormatter(formatter)
+
+# # Add the handler to the root logger
+# logging.getLogger('').addHandler(console)
+
+
+# Existing Flask setup code...
+
+
+# @app.before_request
+# def log_request_info():
+#     if request.method == 'POST':
+#         app.logger.debug('Headers: %s', request.headers)
+#         #app.logger.debug('Body: %s', request.get_data())
+
+
+# @app.after_request
+# def log_response_info(response):
+#     if request.method == 'POST':
+#         #app.logger.debug('Response status: %s', response.status)
+#         app.logger.debug('Response headers: %s', response.headers)
+#         #app.logger.debug('Response body: %s', response.get_data())
+#     return response
+
+# # Existing Flask app routes...
 
 
 
