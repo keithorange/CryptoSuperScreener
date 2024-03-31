@@ -1,0 +1,74 @@
+/* screener.css - Enhancements for Crypto Screener Page */
+
+/* Favorite Button */
+.favorite-button {
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    font-size: 20px;
+    color: var(--text-color);
+    transition: color 0.3s ease-in-out;
+}
+
+.favorite-button.active {
+    color: var(--button-color);
+    /* Highlight active favorites */
+}
+
+/* Sorting Indicator */
+.sort-indicator {
+    margin-left: 5px;
+    color: var(--accent-color);
+}
+
+/* Button to Add All to Favorites */
+.add-all-favorites {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: var(--button-color);
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+    margin: var(--element-spacing) 0;
+}
+
+.add-all-favorites:hover {
+    background-color: var(--button-hover-color);
+}
+
+/* Filters Styling */
+.filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    /* Spacing between input and button */
+    padding: 10px;
+    background: var(--hover-color);
+    border-radius: 5px;
+    margin: var(--element-spacing) var(--element-spacing) var(--element-spacing) 0;
+}
+
+.filter input {
+    padding: 5px;
+    background: #fff;
+    border: 1px solid transparent;
+    /* Hide border */
+    border-radius: 5px;
+    color: #333;
+}
+
+.filter button {
+    padding: 5px 10px;
+    background-color: var(--accent-color);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.filter button:hover {
+    background-color: var(--button-hover-color);
+}

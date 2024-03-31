@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/screener.css') }}">
+
+
+{% endblock %}
+
+{% block content %}
+<h1>Crypto Pair Screener</h1>
+
+<div class="controls">
+    <button onclick="addAllToFavorites()">Add All to Favorites</button>
+    <button onclick="removeAllFavorites()">Remove All Favorites</button>
+
+    <div id="customFilter">
+        <input type="text" id="filterInput" placeholder="Enter filter function (e.g., 'df['close'] > 10')">
+        <button onclick="applyFilter()">Apply Filter</button>
+    </div>
+    <button onclick="refreshScreenerData()">Refresh Data</button>
+</div>
+
+
+<table id="cryptoTable" class="table">
+    <!-- Headers and body will be inserted by loadScreenerData() -->
+</table>
+
+<script src="{{ url_for('static', filename='helpers.js') }}"></script>
+<script>
+    // Make the favorites accessible as a JavaScript variable
+    const favorites = {{ favorites | tojson | safe }};
+</script>
+<script>
+    async function refreshScreenerData() {
+        document.getElementById('loadingIndicator').style.display = 'block'; // Show loading indicator
+
+        try {
+            // Fetch the list of pairs first
+            const pairsResponse = await fetch('/get_pairs');
+            if (!pairsResponse.ok) throw new Error('Failed to fetch pairs');
+
+            const pairs = await pairsResponse.json();
+
+            console.log('pairs', pairs);
+
+            // Use the fetched pairs to refresh data
+            const enrichedDataResponse = await fetch('/get_enriched_ohlcv', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pairs }) // Send the fetched pairs in the request body
+            });
+
+            if (!enrichedDataResponse.ok) throw new Error('Failed to refresh data');
+
+            const enrichedData = await enrichedDataResponse.json();
+
+            console.log('enrichedData', enrichedData);
+
+            // Assuming populateTableRows is implemented and properly uses the enriched data
+            populateTableRows(enrichedData);
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+        } finally {
+            document.getElementById('loadingIndicator').style.display = 'none'; // Hide loading indicator after data is refreshed
+        }
+    }
+
+    // This function initializes the table structure and refreshes screener data
+    async function loadScreenerData() {
+        initializeTableStructure(); // Make sure this function is defined and correctly sets up the table
+        await refreshScreenerData(); // Await for refreshScreenerData to complete
+    }
+    
+    function addAllToFavorites() {
+            let pairsToAdd = [];
+            document.querySelectorAll('.favorite-button').forEach(favButton => {
+                const pair = favButton.dataset.pair; // Ensure data-pair is correctly set as dataset in each button
+
+                // Check if the pair is already in the favorites array to prevent duplicates
+                if (!favorites.includes(pair)) {
+                    pairsToAdd.push(pair);
+                }
+            });
+
+            console.log("ADDING FAVORITES: ", pairsToAdd);
+
+            // Send POST request to add_favorites endpoint with the list of pairs
+            fetch('/add_favorites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pairs: pairsToAdd }), // Send the list of pairs
+                credentials: 'same-origin' // Ensure cookies/session is included in request
+            }).then(response => response.json())
+                .then(data => {
+                    console.log(data.message);
+                    // Update the client-side favorites array and UI based on the response
+                    favorites.push(...pairsToAdd);
+                    pairsToAdd.forEach(pair => {
+                        const favButton = document.querySelector(`.favorite-button[data-pair="${pair}"]`);
+                        if (favButton) {
+                            favButton.classList.add('active');
+                            favButton.textContent = '★'; // Update button text to indicate it's a favorite
+                        }
+                    });
+                })
+                .catch(error => console.error('Error adding to favorites:', error));
+        }
+
+        function removeAllFavorites() {
+            fetch('/remove_favorites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pairs: favorites }), // Send the current favorites to be removed
+                credentials: 'same-origin' // Ensure cookies/session is included in the request
+            }).then(response => response.json())
+                .then(data => {
+                    console.log(data.message);
+                    // Clear the client-side favorites array
+                    favorites.length = 0;
+                    // Update UI accordingly, e.g., deactivate all favorite buttons
+                    document.querySelectorAll('.favorite-button.active').forEach(button => {
+                        button.classList.remove('active');
+                        button.textContent = '☆'; // Update to indicate it's not a favorite
+                    });
+                })
+                .catch(error => console.error('Error removing all favorites:', error));
+        }
+
+
+    function initializeTableStructure() {
+        const table = document.getElementById('cryptoTable');
+        table.innerHTML = ''; // Clear existing table content
+
+        const thead = document.createElement('thead');
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        tbody.setAttribute('id', 'data-table-body');
+        table.appendChild(tbody);
+
+        // Define new column names
+        const columnNames = ['Pair', 'Close', 'Volume', 'Bid-Ask Spread', 'Volatility'];
+
+        // Create table header
+        const headerRow = thead.insertRow();
+        columnNames.forEach(colName => {
+            const th = document.createElement('th');
+            th.textContent = colName;
+            headerRow.appendChild(th);
+        });
+
+        // Columns for chart and favorites, these don't need sorting
+        const chartTh = document.createElement('th');
+        chartTh.textContent = 'Chart';
+        headerRow.appendChild(chartTh);
+
+        const favoritesTh = document.createElement('th');
+        favoritesTh.textContent = 'Favorites';
+        headerRow.appendChild(favoritesTh);
+    }
+
+    function populateTableRows(enrichedData) {
+            const tbody = document.getElementById('data-table-body');
+
+            // Clear the existing rows to avoid duplication
+            tbody.innerHTML = '';
+
+            Object.entries(enrichedData).forEach(([pair, data]) => {
+            const lookbackPeriod = 14;
+            // Ensure we have enough data points for the lookback period
+            const actualLookbackPeriod = Math.min(data.length, lookbackPeriod);
+
+            // Initialize sums
+            let sumVolume = 0;
+            let sumSpread = 0;
+            let sumVolatility = 0;
+
+            // Sum values from the lookback period to the current period
+            for (let i = data.length - actualLookbackPeriod; i < data.length; i++) {
+                sumVolume += data[i].volume;
+                sumSpread += data[i].bid_ask_spread;
+                sumVolatility += data[i].volatility || 0; // Assuming volatility might not be present for all data points
+            }
+
+            // Calculate averages
+            const averageVolume = sumVolume / actualLookbackPeriod;
+            const averageSpread = sumSpread / actualLookbackPeriod;
+            const averageVolatility = sumVolatility / actualLookbackPeriod;
+
+            const latestData = data[data.length - 1]; // Get the most recent data point
+            console.log('latestData', latestData, 'fullData', data);
+
+            const row = tbody.insertRow();
+
+            // Pair Column
+            const pairCell = row.insertCell();
+            pairCell.textContent = pair;
+
+            // Close Price Column
+            const closeCell = row.insertCell();
+            closeCell.textContent = latestData.close;
+
+            // Volume Column - now using average
+            const volumeCell = row.insertCell();
+            volumeCell.textContent = averageVolume.toFixed(2); // Formatting to two decimal places
+
+            // Bid-Ask Spread Column - now using average, scaled to 0-100, and formatted as a percentage
+            const spreadCell = row.insertCell();
+            const spreadPercentage = (averageSpread * 100).toFixed(2); // Scale and format
+            spreadCell.textContent = `${spreadPercentage}%`; // Append the '%' symbol
+
+            // Volatility Column - now using average
+            const volatilityCell = row.insertCell();
+            volatilityCell.textContent = averageVolatility.toFixed(2) || '69'; // Use the dynamically calculated volatility if available, otherwise use hardcoded value
+
+                // Chart Column
+                const chartCell = row.insertCell();
+                const chartDiv = document.createElement('div');
+                chartDiv.id = `screener_chart_${pair}`;
+                chartDiv.style.width = '100px';  // Set a fixed width for the chart
+                chartDiv.style.height = '50px';  // Set a fixed height for the chart
+                chartCell.appendChild(chartDiv);
+
+
+                // Favorites Column
+                const favCell = row.insertCell();
+                const favButton = document.createElement('button');
+                favButton.className = 'favorite-button ' + (favorites.includes(pair) ? 'active' : '');
+                favButton.textContent = favorites.includes(pair) ? '★' : '☆';
+                favButton.dataset.pair = pair;
+
+                favButton.addEventListener('click', async () => {
+                    await fetch('/toggle_favorite?pair=' + encodeURIComponent(pair), {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+
+                    // Toggle state in the client-side array
+                    const index = favorites.indexOf(pair);
+                    if (index > -1) {
+                        favorites.splice(index, 1); // Remove from favorites if it's there
+                    } else {
+                        favorites.push(pair); // Add to favorites if it's not
+                    }
+
+                    // Update button state
+                    favButton.classList.toggle('active');
+                    favButton.textContent = favButton.classList.contains('active') ? '★' : '☆';
+                });
+
+                favCell.appendChild(favButton);
+
+
+                // Generate a chart for the pair
+                setTimeout(() => {
+                    generateSimpleLiteChart(pair, data);  // Pass the entire data array for chart generation
+                }, 0);
+            });
+        }
+
+
+
+    function applyFilter() {
+        const filterString = document.getElementById('filterInput').value;
+        fetch('/filter_data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filter: filterString })
+        })
+            .then(response => response.json())
+            .then(filteredData => {
+                populateTableRows(filteredData);
+            })
+            .catch(error => console.error('Error applying filter:', error));
+    }
+
+
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadScreenerData(); // or any other initialization function you have
+    });
+
+
+</script>
+{% endblock %}
+

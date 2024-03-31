@@ -1,0 +1,9 @@
+{% extends 'base.html' %} {% block content %}
+<h1>Detailed View: {{ pair }}</h1>
+<div id="chart"></div>
+
+<script>
+  var chartData = {{ chart | safe }};
+  Plotly.newPlot('chart', chartData.data, chartData.layout);
+</script>
+{% endblock %}
