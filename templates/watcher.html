@@ -75,6 +75,7 @@
         populateWatcherCharts(favoritePairsData);
         populateGrid();
     });
+    document.getElementById('applyGridSettings').addEventListener('click', populateGrid);
 
         function reloadPageGetNewFlaskData() {
                 // This function will reload the page and get the new data from the server
@@ -88,6 +89,11 @@
   function populateGrid() {
         const rows = parseInt(document.getElementById('gridRows').value, 10) || 2;
         const cols = parseInt(document.getElementById('gridCols').value, 10) || 2;
+
+
+      
+
+
         const itemsPerPage = rows * cols;
         const currentPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10);
         const startIndex = (currentPage - 1) * itemsPerPage;
@@ -97,7 +103,12 @@
         const favoritesForPage = favorites.slice(startIndex, endIndex);
 
         const container = document.getElementById('watcherGrid');
+        // Set CSS variables for the grid container
+
+        container.style.setProperty('--grid-rows', rows);
+        container.style.setProperty('--grid-cols', cols);
         container.innerHTML = '';
+
         favoritesForPage.forEach(pair => {
             const gridItem = document.createElement('div');
             gridItem.classList.add('grid-item');

@@ -1,22 +1,80 @@
-/* watcher.css - Enhancements for Crypto Watcher Page */
-
-/* Grid Layout */
+/* Grid Layout - Make it responsive to content */
 .grid {
     display: grid;
-    grid-template-columns: repeat(var(--grid-cols), minmax(250px, 1fr));
-    grid-template-rows: repeat(var(--grid-rows), auto);
-    gap: var(--element-spacing);
-    margin-bottom: var(--element-spacing);
+    grid-template-columns: repeat(var(--grid-cols), 1fr);
+    /* Set columns based on variable */
+    /* No need to set grid-template-rows explicitly */
+    gap: 20px;
+    /* Space between grid items */
+    width: 100%;
+    /* Full width */
+    margin: 0 auto;
+    /* Centering the grid */
 }
 
-/* Grid Item */
 .grid-item {
     background-color: var(--background-color);
-    border: 1px solid var(--accent-color);
-    border-radius: 5px;
-    padding: var(--element-spacing);
     color: var(--text-color);
-    transition: transform 0.3s ease-in-out;
+    border: 1px solid var(--accent-color);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    /* Stack child elements vertically */
+    justify-content: space-between;
+    /* Distribute space evenly between child elements */
+}
+
+/* Ensure chart containers take full height and width within grid items */
+.grid-item .chart-container {
+    height: 100%;
+    /* Make charts use all available height */
+    width: 100%;
+    /* Make charts use all available width */
+}
+
+/* Enhancements for form sections to be more responsive */
+.form-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-section label,
+.form-section input,
+.form-section select,
+.form-section button {
+    flex: 1 1 200px;
+    /* Each form element can grow but starts with a base width of 200px */
+    margin-bottom: 10px;
+    /* Add some space below each form element */
+}
+
+/* Adjust button styling for better visibility and interactivity */
+button {
+    background-color: var(--button-color);
+    color: #000;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: var(--button-hover-color);
+}
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        /* Adjust column size for smaller screens */
+    }
+
+    .form-section {
+        justify-content: center;
+        /* Center form elements on smaller screens */
+    }
 }
 
 .grid-item:hover {
@@ -24,12 +82,7 @@
     /* Slight lift effect on hover */
 }
 
-/* Chart Container within each Grid Item */
-.grid-item .chart-container {
-    width: 100%;
-    height: 300px;
-    margin-bottom: var(--element-spacing);
-}
+
 
 /* Remove Favorite Button */
 .grid-item button.remove-favorite {

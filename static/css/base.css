@@ -21,11 +21,11 @@
 
 body {
     font-family: var(--font-family);
-    margin: 0;
-    padding: var(--container-padding);
     background-color: var(--background-color);
     color: var(--text-color);
     line-height: 1.6;
+    margin: 0;
+    /* Ensure the body has no margin */
 }
 
 a {
@@ -37,11 +37,15 @@ a {
 a:hover {
     color: var(--accent-color);
 }
-
 .container {
-    max-width: 1200px;
-    margin: auto;
-    padding: var(--container-padding);
+    width: 100%;
+    /* Use 100% of the viewport width */
+    max-width: none;
+    /* Remove any max-width constraints */
+    margin: 0;
+    /* Remove default margin */
+    padding: 0;
+    /* Remove default padding */
 }
 
 .navbar {
