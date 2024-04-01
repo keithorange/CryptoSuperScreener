@@ -25,7 +25,7 @@ async def fetch_ohlcv_data_async(symbol, exchange, timeframe='15m', limit=120):
 def fetch_pairs(stake_currency='USD'):
     pairs = [str(x['symbol']) for x in kraken.load_markets(
     ).values() if str(x['symbol']).endswith(stake_currency)]
-    return pairs[:8]  # Limiting to 10 pairs for demonstration
+    return pairs[:50]  # Limiting to 10 pairs for demonstration
 
 
 # Import necessary modules

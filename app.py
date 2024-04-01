@@ -1,3 +1,5 @@
+from tqdm.asyncio import tqdm
+from collections import defaultdict
 from flask import Flask, request
 import ast
 import os
@@ -73,15 +75,52 @@ def screener():
     return render_template('index.html')
 
 
-async def process_in_batches(task_func, items, batch_size=10):
-    results = []
-    for i in tqdm(range(0, len(items), batch_size)):
-        batch = items[i:i + batch_size]
-        tasks = [task_func(item) for item in batch]
-        batch_results = await asyncio.gather(*tasks)
-        results.extend(batch_results)
-    return results
+MAX_TRIES = 3  # Define a maximum number of retries for each pair
 
+# Setup basic configuration for logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+async def process_in_batches(task_func, items, batch_size=30, MAX_TRIES=3):
+    results = []
+    errors = defaultdict(int)  # Dictionary to keep track of retries per item
+    pending_items = items[:]  # Copy of items to maintain a pending list
+    total_batches = (len(items) + batch_size - 1) // batch_size
+
+    # Initialize the progress bar
+    progress_bar = tqdm(total=total_batches)
+
+    while pending_items:
+        batch = pending_items[:batch_size]  # Get the current batch
+        pending_items = pending_items[batch_size:]  # Update the pending list
+
+        tasks = [task_func(item) for item in batch]
+        batch_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results and errors
+        for item, result in zip(batch, batch_results):
+            if isinstance(result, Exception):
+                errors[item] += 1
+                if errors[item] < MAX_TRIES:
+                    logging.error(f"Error processing {item}: {
+                                  result}, retrying ({errors[item]}/{MAX_TRIES})...")
+                    # Retry this item in the next iteration
+                    pending_items.append(item)
+                else:
+                    logging.error(f"Max retries exceeded for {item}: {result}")
+            else:
+                results.append((item ,result[1]))
+
+        # Update the progress bar after each batch
+        progress_bar.update(1)
+
+    # Close the progress bar when done
+    progress_bar.close()
+
+
+    #print(results)  # Add this for debugging
+    return results
 
 @app.route('/get_enriched_ohlcv', methods=['POST'])
 async def get_enriched_ohlcv():
@@ -104,14 +143,21 @@ async def get_enriched_ohlcv():
             return pair, add_custom_properties(ohlcv_df).to_dict('records')
 
     try:
-        results = await process_in_batches(fetch_and_process, pairs, batch_size=20)
+        # Use the updated 'process_in_batches' with retry logic
+        results = await process_in_batches(fetch_and_process, pairs, batch_size=50)
+        
+        print(results)  # Add this for debugging
         for pair, ohlcv_data in results:
-            enriched_data[pair] = ohlcv_data
+            enriched_data[pair] = ohlcv_data  # Directly assign the OHLCV data here
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+    
     session['enriched_data'] = enriched_data
+    # Before returning, construct the final dictionary correctly
+    
     return jsonify(enriched_data)
+
 
 @app.route('/add_favorites', methods=['POST'])
 def add_favorites():
