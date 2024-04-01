@@ -1,9 +1,13 @@
 # 🚀 CRYPTO SUPER SCREENER 🚀
 
-![Logo](images/logo.png)
+![Logo](images/logo.jpeg)
 
 
 Welcome to the **Crypto Super Screener**, the ultimate tool that leaves platforms like TradingView in the dust! Whether you're a seasoned trader or just stepping into the thrilling world of cryptocurrency, this screener is your gateway to unparalleled insights and opportunities. 📈💰
+
+![usage](images/screener.png)
+![usage2](images/watcher.png)
+
 
 ## Key Features
 
@@ -17,8 +21,6 @@ Welcome to the **Crypto Super Screener**, the ultimate tool that leaves platform
 
 - **Make Informed Decisions**: With detailed analytics and a user-friendly interface, you'll have all the information you need to make smart, profitable decisions.
 
-![usage](images/screener.png)
-![usage2](images/watcher.png)
 
 
 ## Why Choose Crypto Super Screener?
