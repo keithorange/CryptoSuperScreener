@@ -9,7 +9,6 @@ function storeChartData(pair, ohlcvData) {
     chartDataStore[pair] = ohlcvData;
 }
 
-
 function generateSimpleLiteChart(pair, ohlcvData) {
     const chartDiv = document.getElementById(`screener_chart_${pair}`);
 
@@ -19,8 +18,12 @@ function generateSimpleLiteChart(pair, ohlcvData) {
     const trace = {
         x: timestamps,
         y: closes,
-        mode: 'lines',
-        line: {color: '#17BECF'}, // Set line color
+        mode: 'lines', // Keep it simple with just lines, no markers
+        line: {
+            color: 'orange', // Set line color to orange
+            width: 2, // Increase line width for better visibility
+        },
+        hoverinfo: 'none' // Disable hover tooltips
     };
 
     const layout = {
@@ -28,6 +31,8 @@ function generateSimpleLiteChart(pair, ohlcvData) {
         xaxis: { visible: false }, // Hide X axis
         yaxis: { visible: false }, // Hide Y axis
         showlegend: false, // Hide legend
+        plot_bgcolor: 'rgba(0,0,0,0)', // Set plot background to transparent
+        paper_bgcolor: 'rgba(0,0,0,0)', // Set paper background to transparent
     };
 
     Plotly.newPlot(chartDiv, [trace], layout);

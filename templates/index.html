@@ -38,6 +38,7 @@
 <script>
     // Make the favorites accessible as a JavaScript variable
     const favorites = {{ favorites | tojson | safe }};
+    const enrichedData = {{ enriched_data | tojson | safe }};
 </script>
 <script>
     async function refreshScreenerData() {
@@ -52,25 +53,33 @@
 
 
             // Use the fetched pairs to refresh data
-            const enrichedDataResponse = await fetch('/get_enriched_ohlcv', {
+            const response = await fetch('/get_enriched_ohlcv', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ pairs }) // Send the fetched pairs in the request body
             });
 
+            console.log('FULL LOG: response', response)
 
-            if (!enrichedDataResponse.ok) throw new Error('Failed to refresh data');
+            if (!response.ok) throw new Error('Failed to refresh data');
 
-            const enrichedData = await enrichedDataResponse.json();
+            // const responseText = await enrichedDataResponse.text();  // Get the raw response text
+            // console.log("Response Text:", responseText);             // Log it for debugging
+            // const enrichedData = JSON.parse(responseText);           // Parse the text as JSON
+            //console.log( 'enrichedData', enrichedData)
 
+            // GET from session enriched data
+            //const enrichedDataJson = await enrichedData.json();
+
+            //console.log('enrichedDataJson', enrichedDataJson)
 
             // Assuming populateTableRows is implemented and properly uses the enriched data
             populateTableRows(enrichedData);
 
-            // add to local cache as well!
-            Object.entries(enrichedData).forEach(([pair, data]) => {
-                storeChartData(pair, data);
-            });
+            // // add to local cache as well!
+            // Object.entries(enrichedDataJson).forEach(([pair, data]) => {
+            //     storeChartData(pair, data);
+            // });
 
         } catch (error) {
             console.error('Error refreshing data:', error);

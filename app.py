@@ -1,3 +1,4 @@
+from flask_cors import CORS
 from tqdm.asyncio import tqdm
 from collections import defaultdict
 from flask import Flask, request
@@ -29,6 +30,11 @@ from cachelib.file import FileSystemCache
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
+CORS(app)
+
+# set flask app port not 5000 to 6969
+
+
 
 # Ensure the directory for the session files exists
 session_dir = os.path.join(os.getcwd(), 'sessions')
@@ -65,7 +71,8 @@ async def get_pairs():
 async def index():
     # Use .get to avoid KeyError if 'favorites' doesn't exist
     favorites = session.get('favorites', [])
-    return render_template('index.html', favorites=favorites)
+    enriched_data = session.get('enriched_data', {})
+    return render_template('index.html', favorites=favorites, enriched_data=enriched_data)
 
 
 
@@ -82,7 +89,7 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-async def process_in_batches(task_func, items, batch_size=30, MAX_TRIES=3):
+async def process_in_batches(task_func, items, batch_size, MAX_TRIES=10):
     results = []
     errors = defaultdict(int)  # Dictionary to keep track of retries per item
     pending_items = items[:]  # Copy of items to maintain a pending list
@@ -126,7 +133,7 @@ async def process_in_batches(task_func, items, batch_size=30, MAX_TRIES=3):
 async def get_enriched_ohlcv():
     data = request.get_json()
     pairs = data.get('pairs', [])
-    timeframe = data.get('timeframe', '15m')
+    timeframe = data.get('timeframe', '5m')
     if timeframe not in ['1m', '5m', '15m', '30m', '1h', '4h', '1d']:
         return jsonify({'error': 'Invalid timeframe'}), 400
     
@@ -144,19 +151,20 @@ async def get_enriched_ohlcv():
 
     try:
         # Use the updated 'process_in_batches' with retry logic
-        results = await process_in_batches(fetch_and_process, pairs, batch_size=50)
+        results = await process_in_batches(fetch_and_process, pairs, batch_size=30)
         
-        print(results)  # Add this for debugging
         for pair, ohlcv_data in results:
             enriched_data[pair] = ohlcv_data  # Directly assign the OHLCV data here
+            
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': f"{str(e)} and enriched_data {enriched_data} and results = {results}" }), 400
 
     
     session['enriched_data'] = enriched_data
     # Before returning, construct the final dictionary correctly
     
-    return jsonify(enriched_data)
+    # return jsonify(enriched_data)
+    return jsonify({'message': 'Data fetched and enriched successfully IN SESSION.'}), 200
 
 
 @app.route('/add_favorites', methods=['POST'])
@@ -302,4 +310,4 @@ def filter_data():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=6969)

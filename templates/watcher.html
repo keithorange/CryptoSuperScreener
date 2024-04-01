@@ -68,9 +68,10 @@
 <script src="{{ url_for('static', filename='helpers.js') }}"></script>
 <script>
     var favorites = {{ favorites | tojson }};
+    const favoritePairsData = {{ enriched_data | tojson | safe }};
+
 
     document.addEventListener('DOMContentLoaded', () => {
-        const favoritePairsData = JSON.parse('{{ favorite_pairs_data | tojson | safe }}');
         populateWatcherCharts(favoritePairsData);
         populateGrid();
     });
