@@ -1,13 +1,4 @@
 
-// Example of storing fetched data
-let chartDataStore = {}; // A global variable to store fetched chart data
-
-
-// Assume this function is called when data is initially fetched
-function storeChartData(pair, ohlcvData) {
-
-    chartDataStore[pair] = ohlcvData;
-}
 
 function generateSimpleLiteChart(pair, ohlcvData) {
     const chartDiv = document.getElementById(`screener_chart_${pair}`);

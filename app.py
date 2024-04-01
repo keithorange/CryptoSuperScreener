@@ -69,10 +69,28 @@ async def get_pairs():
 
 @app.route('/')
 async def index():
-    # Use .get to avoid KeyError if 'favorites' doesn't exist
     favorites = session.get('favorites', [])
     enriched_data = session.get('enriched_data', {})
-    return render_template('index.html', favorites=favorites, enriched_data=enriched_data)
+    filter_criteria = session.get('filter_criteria', '')
+
+    try:
+        # Construct the filter function from the stored criteria
+        if filter_criteria:
+            filter_func = eval("lambda x: " + filter_criteria)
+            # Apply the filter function to the enriched_data
+            filtered_data = {pair: list(filter(filter_func, data_list))
+                             for pair, data_list in enriched_data.items()}
+            # Remove pairs with no data
+            filtered_data = {pair: data_list for pair,
+                             data_list in filtered_data.items() if data_list}
+        else:
+            filtered_data = enriched_data
+    except Exception as e:
+        print(f"ERROR: {str(e)}")
+        # If there's an error with the filter, fall back to unfiltered data
+        filtered_data = enriched_data
+
+    return render_template('index.html', favorites=favorites, enriched_data=filtered_data)
 
 
 
@@ -248,26 +266,11 @@ def filter_data():
     data = request.json
     filter_string = data.get('filter', '')
 
-    if 'enriched_data' not in session:
-        return jsonify({'error': 'Data not found'}), 400
+    # FILTERING IS DONE IN INDEX/SCREENER PASSED INTO FLASK (REFRESH!)
 
-    try:
-        # Convert the filter string into a lambda function
-        # Be cautious with eval(), make sure the input is sanitized
-        filter_func = eval("lambda x: " + filter_string)
-
-        enriched_data = session['enriched_data']
-        filtered_data = {pair: list(filter(filter_func, data_list))
-                         for pair, data_list in enriched_data.items()}
-
-    
-        # remove pairs with no data
-        filtered_data = {pair: data_list for pair, data_list in filtered_data.items() if data_list}
-        
-        return jsonify(filtered_data)
-    except Exception as e:
-        print(f"ERROR: {str(e)}")
-        return jsonify({'error': f'Failed to apply filter: {str(e)}'}), 400
+    # Store the filter criteria in the session
+    session['filter_criteria'] = filter_string
+    return jsonify({'message': 'Filter criteria updated successfully'})
 
 
 # # Configure logging
@@ -309,4 +312,4 @@ def filter_data():
 
 
 if __name__ == '__main__':
-    app.run(debug=False, port=6969)
+    app.run(debug=True, port=6969)

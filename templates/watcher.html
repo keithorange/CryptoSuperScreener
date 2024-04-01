@@ -76,6 +76,15 @@
         populateGrid();
     });
 
+        function reloadPageGetNewFlaskData() {
+                // This function will reload the page and get the new data from the server
+                // This will be useful when you want to refresh the data on the page
+                // without using AJAX or any other client-side data fetching method
+                setTimeout(function () {
+                    window.location.reload();
+                }, 10); // Adjust the delay as needed
+            }
+
   function populateGrid() {
         const rows = parseInt(document.getElementById('gridRows').value, 10) || 2;
         const cols = parseInt(document.getElementById('gridCols').value, 10) || 2;
@@ -159,12 +168,14 @@
                 body: JSON.stringify({ pairs: favorites, length: length, timeframe: timeframe })
             });
             if (!response.ok) throw new Error('Failed to fetch enriched data');
-            const enrichedData = await response.json();
-            populateWatcherCharts(enrichedData);
+            // const enrichedData = await response.json();
+            // populateWatcherCharts(enrichedData);
 
-            Object.entries(enrichedData).forEach(([pair, data]) => {
-                storeChartData(pair, data);
-            });
+            // Object.entries(enrichedData).forEach(([pair, data]) => {
+            //     storeChartData(pair, data);
+            // });
+
+            reloadPageGetNewFlaskData(); // should reload the page and get the new data from the server flask
 
         } catch (error) {
             console.error('Error refreshing watcher data:', error);

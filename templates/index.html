@@ -41,6 +41,16 @@
     const enrichedData = {{ enriched_data | tojson | safe }};
 </script>
 <script>
+
+    function reloadPageGetNewFlaskData() {
+        // This function will reload the page and get the new data from the server
+        // This will be useful when you want to refresh the data on the page
+        // without using AJAX or any other client-side data fetching method
+       setTimeout(function () {
+            window.location.reload();
+        }, 10); // Adjust the delay as needed
+    }
+
     async function refreshScreenerData() {
         document.getElementById('loadingIndicator').style.display = 'block'; // Show loading indicator
 
@@ -65,9 +75,7 @@
 
             //Full Page Refresh You can trigger a page reload using JavaScript after a set interval. This will refresh the page and load the latest data from the server. Here's how you can do it:
 
-            setTimeout(function () {
-                window.location.reload(1);
-            }, 10);  
+            reloadPageGetNewFlaskData();
 
             // const responseText = await enrichedDataResponse.text();  // Get the raw response text
             // console.log("Response Text:", responseText);             // Log it for debugging
@@ -94,8 +102,9 @@
         }
     }
 
+    
     // This function initializes the table structure and refreshes screener data
-    async function loadScreenerData() {
+    async function setupScreener() {
         initializeTableStructure(); // Make sure this function is defined and correctly sets up the table
          // Assuming populateTableRows is implemented and properly uses the enriched data
         populateTableRows(enrichedData);
@@ -294,23 +303,25 @@
                 }, 0);
             });
         }
-
-
-
     function applyFilter() {
-        const filterString = document.getElementById('filterInput').value;
-        fetch('/filter_data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filter: filterString })
-        })
-            .then(response => response.json())
-            .then(filteredData => {
-                populateTableRows(filteredData);
-            })
-            .catch(error => console.error('Error applying filter:', error));
-    }
+            // Assuming CodeMirror is initialized directly on this textarea
+            var editor = document.getElementById('filterCode').nextSibling.CodeMirror;
+            if (editor) {
+                // Use the CodeMirror API to get the current content
+                var filterString = editor.getValue();
+                console.log('Filter String:', filterString);
 
+                fetch('/filter_data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filter: filterString })
+                })
+                    .then(response => reloadPageGetNewFlaskData()) // Should reload the page to apply the filter
+                    .catch(error => console.error('Error applying filter:', error));
+            } else {
+                console.error("Couldn't find CodeMirror instance.");
+            }
+        }
 
     // Updates the sort indicator based on the current sort direction
     function updateSortIndicator(activeColumnIndex, direction) {
@@ -328,47 +339,36 @@
             activeIndicator.innerHTML = direction === 'asc' ? '▼' : '▲';
         }
     }
+    let dir = "asc"; // Initialize sort direction
 
-    // Sorts table columns
-    function sortTable(n) {
-        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-        table = document.getElementById("cryptoTable");
-        switching = true;
-        dir = "asc";
+    function sortTable(columnIndex) {
+            const table = document.getElementById("cryptoTable");
+            let tbody = table.querySelector("tbody");
+            const rows = Array.from(tbody.rows);
 
-        while (switching) {
-            switching = false;
-            rows = table.rows;
+            // Detach tbody to avoid layout thrashing
+            table.removeChild(tbody);
 
-            for (i = 1; i < (rows.length - 1); i++) {
-                shouldSwitch = false;
-                x = rows[i].getElementsByTagName("TD")[n];
-                y = rows[i + 1].getElementsByTagName("TD")[n];
+            const dirModifier = dir === "asc" ? 1 : -1;
+            rows.sort((a, b) => {
+                const aText = a.cells[columnIndex].textContent.trim().toLowerCase();
+                const bText = b.cells[columnIndex].textContent.trim().toLowerCase();
+                return aText > bText ? (1 * dirModifier) : (-1 * dirModifier);
+            });
 
-                if (dir == "asc") {
-                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-                        shouldSwitch = true;
-                        break;
-                    }
-                } else if (dir == "desc") {
-                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-                        shouldSwitch = true;
-                        break;
-                    }
-                }
-            }
+            // Use DocumentFragment to minimize reflows and repaints
+            const fragment = document.createDocumentFragment();
+            rows.forEach(row => fragment.appendChild(row));
 
-            if (shouldSwitch) {
-                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                switching = true;
-                switchcount++;
-            } else if (switchcount == 0 && dir == "asc") {
-                dir = "desc";
-                switching = true;
-            }
-            updateSortIndicator(n, dir); // Update sort indicator direction
+            // Reattach tbody
+            tbody.appendChild(fragment);
+            table.appendChild(tbody);
+
+            dir = dir === "asc" ? "desc" : "asc";
+            updateSortIndicator(columnIndex, dir);
         }
-    }
+
+
 
 
     // Add this to the bottom of your script tag in index.html
@@ -396,7 +396,7 @@
 
 
     document.addEventListener('DOMContentLoaded', () => {
-        loadScreenerData(); // or any other initialization function you have
+        setupScreener(); // or any other initialization function you have
     });
 
 
