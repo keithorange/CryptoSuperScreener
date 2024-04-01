@@ -1,0 +1,29 @@
+<!-- base.html -->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Crypto Screener</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <div class="navbar">
+        <a href="{{ url_for('index') }}">Screener</a>
+        <a href="{{ url_for('watcher') }}">Watcher</a>
+    </div>
+
+    <div class="container">
+        <div id="loadingIndicator" style="display: none;">Loading...</div>
+        {% block content %}
+
+        {% endblock %}
+    </div>
+
+
+</body>
+
+</html>

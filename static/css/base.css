@@ -1,0 +1,95 @@
+/* base.css - Modern Sleek Crypto Theme */
+
+:root {
+    /* Color Palette */
+    --background-color: #121212;
+    --text-color: #E0E0E0;
+    --accent-color: #BB86FC;
+    --button-color: #03DAC6;
+    --button-hover-color: #018786;
+    --table-header-color: #3700B3;
+    --link-color: #03DAC5;
+    --hover-color: #292929;
+
+    /* Typography */
+    --font-family: 'Roboto', sans-serif;
+
+    /* Spacing */
+    --container-padding: 20px;
+    --element-spacing: 10px;
+}
+
+body {
+    font-family: var(--font-family);
+    margin: 0;
+    padding: var(--container-padding);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: color 0.3s ease-in-out;
+}
+
+a:hover {
+    color: var(--accent-color);
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: var(--container-padding);
+}
+
+.navbar {
+    overflow: hidden;
+    background-color: #333;
+    padding: var(--element-spacing) 0;
+}
+
+.navbar a {
+    float: left;
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 20px;
+    text-decoration: none;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.navbar a:hover {
+    background-color: var(--hover-color);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: var(--element-spacing);
+}
+
+.table th,
+.table td {
+    text-align: left;
+    padding: var(--element-spacing);
+    border-bottom: 1px solid #ddd;
+}
+
+.table th {
+    background-color: var(--table-header-color);
+    color: white;
+    cursor: pointer;
+}
+
+.table tr:nth-child(even) {
+    background-color: #252525;
+}
+
+.table tr:hover {
+    background-color: var(--hover-color);
+}
+
+/* Importing Google Font - Roboto */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');

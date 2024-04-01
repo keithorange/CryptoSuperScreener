@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/watcher.css') }}">
+
+
+{% endblock %}
+
+
+{% block content %}
+<h1>Watcher Page</h1>
+
+<div class="form-section">
+    <h3>Chart Setup</h3>
+    <label for="lengthInput">Length (Periods):</label>
+    <input type="number" id="lengthInput" value="120" min="1"> <!-- Default value set to 120 -->
+
+    <label for="timeframeInput">Timeframe:</label>
+    <select id="timeframeInput">
+        <option value="1m">1 Minute</option>
+        <option value="5m">5 Minutes</option>
+        <option value="15m">15 Minutes</option>
+        <option value="1h" selected>1 Hour</option>
+        <option value="6h">6 Hours</option>
+        <option value="1d">1 Day</option>
+    </select>
+    <button onclick="refreshWatcherData()">Refresh Charts</button>
+</div>
+
+<hr class="section-divider">
+
+<div class="form-section">
+    <h3>Technical Indicators</h3>
+    <label for="smaPeriodInput">SMA Period:</label>
+    <input type="number" id="smaPeriodInput" value="5" min="1"> <!-- Default value set to 5 -->
+
+    <label for="emaPeriodInput">EMA Period:</label>
+    <input type="number" id="emaPeriodInput" value="20" min="1"> <!-- Default value set to 20 -->
+    <button onclick="reapplyIndicators()">Apply Indicators</button>
+</div>
+
+<hr class="section-divider">
+
+<!-- Grid Setup Section -->
+<div class="form-section">
+    <h3>Grid Setup</h3>
+    <label for="gridRows">Rows:</label>
+    <input type="number" id="gridRows" placeholder="Rows" min="1" value="{{ grid_rows }}">
+
+    <label for="gridCols">Columns:</label>
+    <input type="number" id="gridCols" placeholder="Columns" min="1" value="{{ grid_cols }}">
+
+    <button onclick="applyGridSettings()">Apply</button>
+</div>
+<hr class="section-divider">
+
+<div class="grid" id="watcherGrid" style="--grid-rows: {{ grid_rows }}; --grid-cols: {{ grid_cols }}"></div>
+
+<div class="pagination">
+    {% set items_per_page = grid_rows * grid_cols %}
+    {% set total_pages = (favorites|length + items_per_page - 1) // items_per_page %}
+    {% for i in range(1, total_pages + 1) %}
+    <a href="{{ url_for('watcher', page=i, grid_rows=grid_rows, grid_cols=grid_cols) }}">{{ i }}</a>
+    {% endfor %}
+</div>
+
+
+<script src="{{ url_for('static', filename='helpers.js') }}"></script>
+<script>
+    var favorites = {{ favorites | tojson }};
+    const favoritePairsData = {{ favorite_pairs_data | tojson | safe }};
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        populateWatcherCharts(favoritePairsData);
+        populateGrid();
+    });
+
+  function populateGrid() {
+        const rows = parseInt(document.getElementById('gridRows').value, 10) || 2;
+        const cols = parseInt(document.getElementById('gridCols').value, 10) || 2;
+        const itemsPerPage = rows * cols;
+        const currentPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+
+        // Slice the favorites array to get only the items for the current page
+        const favoritesForPage = favorites.slice(startIndex, endIndex);
+
+        const container = document.getElementById('watcherGrid');
+        container.innerHTML = '';
+        favoritesForPage.forEach(pair => {
+            const gridItem = document.createElement('div');
+            gridItem.classList.add('grid-item');
+            gridItem.innerHTML = `
+            <h2>${pair}</h2>
+            <div id="watcher_chart_${pair}" style="width: 400px; height: 300px;"></div>
+            <button onclick="removeFavorite('${pair}')">Remove from Favorites</button>
+        `;
+            container.appendChild(gridItem);
+        });
+    }
+
+    function applyGridSettings() {
+        const rows = parseInt(document.getElementById('gridRows').value, 10) || 2;
+        const cols = parseInt(document.getElementById('gridCols').value, 10) || 2;
+        window.location.href = `${window.location.pathname}?page=1&grid_rows=${rows}&grid_cols=${cols}`;
+    }
+
+    function populateWatcherCharts(favoritePairsData) {
+
+        if (Array.isArray(favoritePairsData)) {
+            // Handle array input
+            favoritePairsData.forEach(({ pair, ohlcv }) => {
+                setTimeout(() => {
+                    generateFullChart(pair, ohlcv);
+                }, 0);
+            });
+        } else {
+            // Handle object input
+            Object.entries(favoritePairsData).forEach(([pair, ohlcvData]) => {
+                setTimeout(() => {
+                    generateFullChart(pair, ohlcvData);
+                }, 0);
+            });
+        }
+    }
+
+    function reapplyIndicators() {
+            if (Object.keys(chartDataStore).length === 0 || Object.values(chartDataStore).every(data => data.length === 0)) {
+
+                refreshWatcherData().then(() => {
+                    Object.keys(chartDataStore).forEach(pair => {
+
+                        const ohlcvData = chartDataStore[pair];
+                        generateFullChart(pair, ohlcvData);
+                    });
+                });
+            } else {
+                Object.keys(chartDataStore).forEach(pair => {
+
+                    const ohlcvData = chartDataStore[pair];
+                    generateFullChart(pair, ohlcvData);
+                });
+            }
+        }
+    async function refreshWatcherData() {
+        document.getElementById('loadingIndicator').style.display = 'block';
+
+        // Retrieve length and timeframe from the input fields
+        const length = parseInt(document.getElementById('lengthInput').value, 10) || 120;
+        const timeframe = document.getElementById('timeframeInput').value || '1h';
+
+        try {
+            const response = await fetch('/get_enriched_ohlcv', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // Include length and timeframe in the body of the POST request
+                body: JSON.stringify({ pairs: favorites, length: length, timeframe: timeframe })
+            });
+            if (!response.ok) throw new Error('Failed to fetch enriched data');
+            const enrichedData = await response.json();
+            populateWatcherCharts(enrichedData);
+
+            Object.entries(enrichedData).forEach(([pair, data]) => {
+                storeChartData(pair, data);
+            });
+
+        } catch (error) {
+            console.error('Error refreshing watcher data:', error);
+        } finally {
+            document.getElementById('loadingIndicator').style.display = 'none';
+        }
+    }
+
+    async function removeFavorite(pair) {
+        const response = await fetch('/remove_favorites', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pair }),
+            credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            console.error('Error removing favorite:', pair);
+        }
+    }
+</script>
+
+{% endblock %}

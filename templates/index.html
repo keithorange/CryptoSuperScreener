@@ -1,0 +1,405 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/screener.css') }}">
+
+<!-- styling code inut python -->
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/mode/python/python.min.js"></script>
+
+{% endblock %}
+
+{% block content %}
+<h1>Crypto Pair Screener</h1>
+<div class="controls">
+    <button onclick="addAllToFavorites()" class="form-button">Add All to Favorites</button>
+    <button onclick="removeAllFavorites()" class="form-button">Remove All Favorites</button>
+
+    <!-- Filter Section -->
+    <div id="customFilter" class="form-section">
+        <!-- Updated to a textarea to accommodate larger, multiline code -->
+        <textarea id="filterCode" placeholder="Enter filter function (e.g., 'x[\'bid_ask_spread\'] < 0.005')"></textarea>
+        <button onclick="applyFilter()" class="form-button">Apply Filter</button>
+    </div>
+
+
+    <button onclick="refreshScreenerData()" class="form-button">Refresh Data</button>
+</div>
+
+
+
+<table id="cryptoTable" class="table">
+    <!-- Headers and body will be inserted by loadScreenerData() -->
+</table>
+
+<script src="{{ url_for('static', filename='helpers.js') }}"></script>
+<script>
+    // Make the favorites accessible as a JavaScript variable
+    const favorites = {{ favorites | tojson | safe }};
+    const enrichedData = {{ enriched_data | tojson | safe }};
+</script>
+<script>
+    async function refreshScreenerData() {
+        document.getElementById('loadingIndicator').style.display = 'block'; // Show loading indicator
+
+        try {
+            // Fetch the list of pairs first
+            const pairsResponse = await fetch('/get_pairs');
+            if (!pairsResponse.ok) throw new Error('Failed to fetch pairs');
+
+            const pairs = await pairsResponse.json();
+
+
+            // Use the fetched pairs to refresh data
+            const response = await fetch('/get_enriched_ohlcv', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pairs }) // Send the fetched pairs in the request body
+            });
+
+            console.log('FULL LOG: response', response)
+
+            if (!response.ok) throw new Error('Failed to refresh data');
+
+            //Full Page Refresh You can trigger a page reload using JavaScript after a set interval. This will refresh the page and load the latest data from the server. Here's how you can do it:
+
+            setTimeout(function () {
+                window.location.reload(1);
+            }, 10);  
+
+            // const responseText = await enrichedDataResponse.text();  // Get the raw response text
+            // console.log("Response Text:", responseText);             // Log it for debugging
+            // const enrichedData = JSON.parse(responseText);           // Parse the text as JSON
+            //console.log( 'enrichedData', enrichedData)
+
+            // GET from session enriched data
+            //const enrichedDataJson = await enrichedData.json();
+
+            //console.log('enrichedDataJson', enrichedDataJson)
+
+            // Assuming populateTableRows is implemented and properly uses the enriched data
+            populateTableRows(enrichedData);
+
+            // // add to local cache as well!
+            // Object.entries(enrichedDataJson).forEach(([pair, data]) => {
+            //     storeChartData(pair, data);
+            // });
+
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+        } finally {
+            document.getElementById('loadingIndicator').style.display = 'none'; // Hide loading indicator after data is refreshed
+        }
+    }
+
+    // This function initializes the table structure and refreshes screener data
+    async function loadScreenerData() {
+        initializeTableStructure(); // Make sure this function is defined and correctly sets up the table
+         // Assuming populateTableRows is implemented and properly uses the enriched data
+        populateTableRows(enrichedData);
+
+        //WRONGawait refreshScreenerData(); // Await for refreshScreenerData to complete
+    }
+    
+    function addAllToFavorites() {
+            let pairsToAdd = [];
+            document.querySelectorAll('.favorite-button').forEach(favButton => {
+                const pair = favButton.dataset.pair; // Ensure data-pair is correctly set as dataset in each button
+
+                // Check if the pair is already in the favorites array to prevent duplicates
+                if (!favorites.includes(pair)) {
+                    pairsToAdd.push(pair);
+                }
+            });
+
+            // Send POST request to add_favorites endpoint with the list of pairs
+            fetch('/add_favorites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pairs: pairsToAdd }), // Send the list of pairs
+                credentials: 'same-origin' // Ensure cookies/session is included in request
+            }).then(response => response.json())
+                .then(data => {
+                    // Update the client-side favorites array and UI based on the response
+                    favorites.push(...pairsToAdd);
+                    pairsToAdd.forEach(pair => {
+                        const favButton = document.querySelector(`.favorite-button[data-pair="${pair}"]`);
+                        if (favButton) {
+                            favButton.classList.add('active');
+                            favButton.textContent = '★'; // Update button text to indicate it's a favorite
+                        }
+                    });
+                })
+                .catch(error => console.error('Error adding to favorites:', error));
+        }
+
+        function removeAllFavorites() {
+            fetch('/remove_favorites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pairs: favorites }), // Send the current favorites to be removed
+                credentials: 'same-origin' // Ensure cookies/session is included in the request
+            }).then(response => response.json())
+                .then(data => {
+                    // Clear the client-side favorites array
+                    favorites.length = 0;
+                    // Update UI accordingly, e.g., deactivate all favorite buttons
+                    document.querySelectorAll('.favorite-button.active').forEach(button => {
+                        button.classList.remove('active');
+                        button.textContent = '☆'; // Update to indicate it's not a favorite
+                    });
+                })
+                .catch(error => console.error('Error removing all favorites:', error));
+        }
+
+
+    function initializeTableStructure() {
+        const table = document.getElementById('cryptoTable');
+        table.innerHTML = ''; // Clear existing table content
+
+        const thead = document.createElement('thead');
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        tbody.setAttribute('id', 'data-table-body');
+        table.appendChild(tbody);
+
+        // Define new column names
+        const columnNames = ['Pair', 'Close', 'Volume', 'Bid-Ask Spread', 'Volatility'];
+
+        // Create table header
+        const headerRow = thead.insertRow();
+        columnNames.forEach(colName => {
+            const th = document.createElement('th');
+            th.textContent = colName;
+            headerRow.appendChild(th);
+
+            // Add sorting functionality to the header
+            th.addEventListener('click', () => {
+                sortTable(columnNames.indexOf(colName));
+            });
+
+            // Add a sorting icon to the header
+            const sortIcon = document.createElement('span');
+            sortIcon.className = 'sort-indicator';
+            th.appendChild(sortIcon);
+        });
+
+        // Columns for chart and favorites, these don't need sorting
+        const chartTh = document.createElement('th');
+        chartTh.textContent = 'Chart';
+        headerRow.appendChild(chartTh);
+
+        const favoritesTh = document.createElement('th');
+        favoritesTh.textContent = 'Favorites';
+        headerRow.appendChild(favoritesTh);
+    }
+
+    function populateTableRows(enrichedData) {
+            const tbody = document.getElementById('data-table-body');
+            console.log(enrichedData);
+            // Clear the existing rows to avoid duplication
+            tbody.innerHTML = '';
+
+            Object.entries(enrichedData).forEach(([pair, data]) => {
+            const lookbackPeriod = 14;
+            // Ensure we have enough data points for the lookback period
+            const actualLookbackPeriod = Math.min(data.length, lookbackPeriod);
+
+            // Initialize sums
+            let sumVolume = 0;
+            let sumSpread = 0;
+            let sumVolatility = 0;
+
+            // Sum values from the lookback period to the current period
+            for (let i = data.length - actualLookbackPeriod; i < data.length; i++) {
+                sumVolume += data[i].volume;
+                sumSpread += data[i].bid_ask_spread;
+                sumVolatility += data[i].volatility || 0; // Assuming volatility might not be present for all data points
+            }
+
+            // Calculate averages
+            const averageVolume = sumVolume / actualLookbackPeriod;
+            const averageSpread = sumSpread / actualLookbackPeriod;
+            const averageVolatility = sumVolatility / actualLookbackPeriod;
+
+            const latestData = data[data.length - 1]; // Get the most recent data point
+
+            const row = tbody.insertRow();
+
+            // Pair Column
+            const pairCell = row.insertCell();
+            pairCell.textContent = pair;
+
+            // Close Price Column
+            const closeCell = row.insertCell();
+            closeCell.textContent = latestData.close;
+
+            // Volume Column - now using average
+            const volumeCell = row.insertCell();
+            volumeCell.textContent = averageVolume.toFixed(2); // Formatting to two decimal places
+
+            // Bid-Ask Spread Column - now using average, scaled to 0-100, and formatted as a percentage
+            const spreadCell = row.insertCell();
+            const spreadPercentage = (averageSpread * 100).toFixed(2); // Scale and format
+            spreadCell.textContent = `${spreadPercentage}%`; // Append the '%' symbol
+
+            // Volatility Column - now using average
+            const volatilityCell = row.insertCell();
+            volatilityCell.textContent = averageVolatility.toFixed(2) || '69'; // Use the dynamically calculated volatility if available, otherwise use hardcoded value
+
+                // Chart Column
+                const chartCell = row.insertCell();
+                const chartDiv = document.createElement('div');
+                chartDiv.id = `screener_chart_${pair}`;
+                chartDiv.style.width = '100px';  // Set a fixed width for the chart
+                chartDiv.style.height = '50px';  // Set a fixed height for the chart
+                chartCell.appendChild(chartDiv);
+
+
+                // Favorites Column
+                const favCell = row.insertCell();
+                const favButton = document.createElement('button');
+                favButton.className = 'favorite-button ' + (favorites.includes(pair) ? 'active' : '');
+                favButton.textContent = favorites.includes(pair) ? '★' : '☆';
+                favButton.dataset.pair = pair;
+
+                favButton.addEventListener('click', async () => {
+                    await fetch('/toggle_favorite?pair=' + encodeURIComponent(pair), {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+
+                    // Toggle state in the client-side array
+                    const index = favorites.indexOf(pair);
+                    if (index > -1) {
+                        favorites.splice(index, 1); // Remove from favorites if it's there
+                    } else {
+                        favorites.push(pair); // Add to favorites if it's not
+                    }
+
+                    // Update button state
+                    favButton.classList.toggle('active');
+                    favButton.textContent = favButton.classList.contains('active') ? '★' : '☆';
+                });
+
+                favCell.appendChild(favButton);
+
+
+                // Generate a chart for the pair
+                setTimeout(() => {
+                    generateSimpleLiteChart(pair, data);  // Pass the entire data array for chart generation
+                }, 0);
+            });
+        }
+
+
+
+    function applyFilter() {
+        const filterString = document.getElementById('filterInput').value;
+        fetch('/filter_data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filter: filterString })
+        })
+            .then(response => response.json())
+            .then(filteredData => {
+                populateTableRows(filteredData);
+            })
+            .catch(error => console.error('Error applying filter:', error));
+    }
+
+
+    // Updates the sort indicator based on the current sort direction
+    function updateSortIndicator(activeColumnIndex, direction) {
+        // Select all sort-indicator elements
+        var indicators = document.querySelectorAll('.sort-indicator');
+
+        // First, reset all indicators to a default state (e.g., hide them or set to a neutral icon)
+        indicators.forEach(function (indicator) {
+            indicator.innerHTML = ''; // Clears the indicator, effectively hiding it
+        });
+
+        // Set the indicator for the currently active column
+        var activeIndicator = indicators[activeColumnIndex];
+        if (activeIndicator) {
+            activeIndicator.innerHTML = direction === 'asc' ? '▼' : '▲';
+        }
+    }
+
+    // Sorts table columns
+    function sortTable(n) {
+        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        table = document.getElementById("cryptoTable");
+        switching = true;
+        dir = "asc";
+
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+
+            for (i = 1; i < (rows.length - 1); i++) {
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("TD")[n];
+                y = rows[i + 1].getElementsByTagName("TD")[n];
+
+                if (dir == "asc") {
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } else if (dir == "desc") {
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+            }
+
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount++;
+            } else if (switchcount == 0 && dir == "asc") {
+                dir = "desc";
+                switching = true;
+            }
+            updateSortIndicator(n, dir); // Update sort indicator direction
+        }
+    }
+
+
+    // Add this to the bottom of your script tag in index.html
+    var editor = CodeMirror.fromTextArea(document.getElementById('filterCode'), {
+        mode: 'python',
+        lineNumbers: true,
+        value: "// To use write something to filter the data by python lambda like: \nx['close'] > 10\n"
+    });
+
+    // Set default text if the editor is empty
+    editor.setValue("// To use write something to filter the data by python lambda like: \nx['close'] > 10\n");
+
+    // Focus and place cursor at the end of the default text
+    editor.focus();
+    editor.setCursor(editor.lineCount(), 0);
+
+    // Add an event listener to resize based on content
+    editor.on('change', function (instance) {
+        var totalLines = instance.lineCount();
+        var totalChars = instance.getValue().length;
+        var editorHeight = totalLines * 25; // Approx. line height in px
+        editorHeight = Math.max(editorHeight, 50); // Minimum height
+        instance.getWrapperElement().style.height = editorHeight + 'px';
+    });
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadScreenerData(); // or any other initialization function you have
+    });
+
+
+</script>
+{% endblock %}
+
