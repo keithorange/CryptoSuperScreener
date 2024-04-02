@@ -29,84 +29,89 @@ function generateSimpleLiteChart(pair, ohlcvData) {
     Plotly.newPlot(chartDiv, [trace], layout);
 }
 
-function generateFullChart(pair, ohlcvData, smaPeriod = null, emaPeriod = null){
-    smaPeriod = smaPeriod || parseInt(document.getElementById('smaPeriodInput').value, 10) || 5;
-    emaPeriod = emaPeriod || parseInt(document.getElementById('emaPeriodInput').value, 10) || 20;
+async function calculateIndicators(closes, hmaPeriod, emaPeriod) {
+    const library = indicators;
+    const ta = new library.Indicators();
 
+    // THEIR IMPLEMENTATION IS BROKEN! CUSTOM IMPLEMENTATION BELOW
+    // const hma = await ta.hma(closes, hmaPeriod);
+    // console.log(hma);
+    const hma = calculateHMA(closes, hmaPeriod);
 
+    const ema = await ta.ema(closes, emaPeriod);
+    console.log(ema);
+
+    // Continue your chart generation logic here using `hma` and `ema`
+    return { hma, ema };
+}
+
+function generateFullChart(pair, ohlcvData, hmaPeriod = null, emaPeriod = null) {
+    // Default period values are set
+    hmaPeriod = hmaPeriod || parseInt(document.getElementById('hmaPeriodInput').value, 10) || 12;
+    emaPeriod = emaPeriod || parseInt(document.getElementById('emaPeriodInput').value, 10) || 42;
 
     const chartDiv = document.getElementById(`watcher_chart_${pair}`);
 
     // Convert timestamps to index for x-axis
     const xData = ohlcvData.map((_, index) => index);
-    
+
     const opens = ohlcvData.map(entry => entry.open);
     const highs = ohlcvData.map(entry => entry.high);
     const lows = ohlcvData.map(entry => entry.low);
     const closes = ohlcvData.map(entry => entry.close);
 
-    
+    // Calculate indicators and plot the chart
+    calculateIndicators(closes, hmaPeriod, emaPeriod).then(({ hma, ema }) => {
+        const candlestickTrace = {
+            type: 'candlestick',
+            x: xData,
+            open: opens,
+            high: highs,
+            low: lows,
+            close: closes
+        };
 
-    // Simple Moving Average calculations
-    const sma = calculateSMA(closes, smaPeriod);
+        const hmaTrace = {
+            x: xData,
+            y: hma,
+            mode: 'lines',
+            name: 'HMA',
+            line: { color: 'orange', width: 3}
+        };
 
-    // Exponential Moving Average calculation
-    const ema = calculateEMA(closes, emaPeriod); // Using 20 periods for EMA
+        const emaTrace = {
+            x: xData,
+            y: ema,
+            mode: 'lines',
+            name: 'EMA',
+            line: { color: 'lightblue', width: 3 }
+        };
 
-    const candlestickTrace = {
-        type: 'candlestick',
-        x: xData, // Use indexing instead of timestamps
-        open: opens,
-        high: highs,
-        low: lows,
-        close: closes
-    };
-
-    const smaTrace = {
-        x: xData, // Use indexing
-        y: sma,
-        mode: 'lines',
-        name: 'SMA',
-        line: { color: 'orange', width: 1 }
-    };
-
-
-    const emaTrace = {
-        x: xData, // Use indexing
-        y: ema,
-        mode: 'lines',
-        name: 'EMA',
-        line: { color: 'purple', width: 2 }
-    };
-
-    const layout = {
-        margin: { l: 40, r: 40, b: 30, t: 30 }, // Adjusted margins
-        xaxis: {
-            visible: true,
-            showgrid: false,
-            showticklabels: false, // Turn off tick labels for x-axis
-            tickfont: {
-                size: 8 // Smaller font size for tick labels
+        const layout = {
+            margin: { l: 10, r: 10, b: 10, t: 10 },
+            xaxis: {
+                visible: true,
+                showgrid: false,
+                showticklabels: false,
+                tickfont: { size: 8 },
+                rangeslider: { visible: false }
             },
-            rangeslider: { visible: false } // Hide the range slider
-        },
-        yaxis: {
-            visible: true,
-            showgrid: true,
-            showticklabels: true,
-            tickfont: {
-                size: 8 // Smaller font size for tick labels
+            yaxis: {
+                visible: true,
+                showgrid: false,
+                showticklabels: false,
+                tickfont: { size: 8 }
             },
-            //tickformat: '$,.2f' // Format for currency, two decimal places
-        },
-        showlegend: false, // Hide legend
-        dragmode: 'zoom', // Allow users to zoom
-        plot_bgcolor: '#f3f3f3', // Background color for the plot
-        paper_bgcolor: '#f3f3f3', // Background color for the outside area
-    };
+            showlegend: false,
+            dragmode: 'zoom',
+            plot_bgcolor: 'rgba(0,0,0,0)', // Set plot background to transparent
+            paper_bgcolor: 'rgba(0,0,0,0)', // Set paper background to transparent
+        };
 
-    Plotly.newPlot(chartDiv, [candlestickTrace, smaTrace, emaTrace], layout);
+        Plotly.newPlot(chartDiv, [candlestickTrace, hmaTrace, emaTrace], layout);
+    }); // Corrected the syntax here
 }
+
 
 // Utility function to calculate SMA
 function calculateSMA(data, window) {
@@ -129,6 +134,56 @@ function calculateEMA(data, period) {
 
     return emaArray;
 }
+// Utility function to calculate WMA
+function calculateWMA(data, period) {
+    let weightedSum = 0;
+    let weightSum = 0;
 
+    return data.map((value, index) => {
+        if (index < period - 1) {
+            return null; // not enough data points to calculate WMA
+        }
+        weightedSum = data.slice(index - period + 1, index + 1)
+                           .reduce((sum, value, idx) => {
+                               const weight = idx + 1;
+                               return sum + value * weight;
+                           }, 0);
 
+        weightSum = data.slice(index - period + 1, index + 1)
+                        .reduce((sum, _, idx) => {
+                            const weight = idx + 1;
+                            return sum + weight;
+                        }, 0);
 
+        return weightedSum / weightSum;
+    });
+}
+
+// Utility function to calculate HMA
+function calculateHMA(data, period) {
+    const halfLength = Math.floor(period / 2);
+    const sqrtLength = Math.floor(Math.sqrt(period));
+
+    // Calculate the first WMA for half period
+    const halfWMA = calculateWMA(data, halfLength);
+
+    // Calculate the second WMA for the full period
+    const fullWMA = calculateWMA(data, period);
+
+    // Calculate the difference between the 2x halfWMA and fullWMA
+    const rawHMA = halfWMA.map((value, index) => {
+        return value !== null && fullWMA[index] !== null
+               ? 2 * value - fullWMA[index]
+               : null;
+    }).filter(v => v !== null); // Remove nulls for the next WMA calculation
+
+    // Calculate the WMA of the rawHMA
+    const hmaWMA = calculateWMA(rawHMA, sqrtLength);
+
+    // Shift the HMA to align with the original data array
+    const hma = Array(halfLength + sqrtLength - 2).fill(null).concat(hmaWMA);
+
+    return hma;
+}
+
+// Use this function in your charting logic by passing in the closing prices array and the desired period for the HMA.

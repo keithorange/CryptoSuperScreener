@@ -3,7 +3,9 @@
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/watcher.css') }}">
 
+<!-- Technical indicators https://github.com/ixjb94/indicators -->
 
+<script src="https://unpkg.com/@ixjb94/indicators@latest/dist/indicators-browser.js"></script>
 {% endblock %}
 
 
@@ -13,14 +15,14 @@
 <div class="form-section">
     <h3>Chart Setup</h3>
     <label for="lengthInput">Length (Periods):</label>
-    <input type="number" id="lengthInput" value="120" min="1"> <!-- Default value set to 120 -->
+    <input type="number" id="lengthInput" value="240" min="1"> <!-- Default value set to 120 -->
 
     <label for="timeframeInput">Timeframe:</label>
     <select id="timeframeInput">
         <option value="1m">1 Minute</option>
-        <option value="5m">5 Minutes</option>
+        <option value="5m" selected>5 Minutes</option>
         <option value="15m">15 Minutes</option>
-        <option value="1h" selected>1 Hour</option>
+        <option value="1h" >1 Hour</option>
         <option value="6h">6 Hours</option>
         <option value="1d">1 Day</option>
     </select>
@@ -31,11 +33,11 @@
 
 <div class="form-section">
     <h3>Technical Indicators</h3>
-    <label for="smaPeriodInput">SMA Period:</label>
-    <input type="number" id="smaPeriodInput" value="5" min="1"> <!-- Default value set to 5 -->
+    <label for="hmaPeriodInput">HMA Period:</label>
+    <input type="number" id="hmaPeriodInput" value="12" min="2"> <!-- Default value set to 5 -->
 
     <label for="emaPeriodInput">EMA Period:</label>
-    <input type="number" id="emaPeriodInput" value="20" min="1"> <!-- Default value set to 20 -->
+    <input type="number" id="emaPeriodInput" value="42" min="2"> <!-- Default value set to 20 -->
     <button onclick="reapplyIndicators()">Apply Indicators</button>
 </div>
 
@@ -147,22 +149,7 @@
     }
 
     function reapplyIndicators() {
-            if (Object.keys(chartDataStore).length === 0 || Object.values(chartDataStore).every(data => data.length === 0)) {
-
-                refreshWatcherData().then(() => {
-                    Object.keys(chartDataStore).forEach(pair => {
-
-                        const ohlcvData = chartDataStore[pair];
-                        generateFullChart(pair, ohlcvData);
-                    });
-                });
-            } else {
-                Object.keys(chartDataStore).forEach(pair => {
-
-                    const ohlcvData = chartDataStore[pair];
-                    generateFullChart(pair, ohlcvData);
-                });
-            }
+            reloadPageGetNewFlaskData(); // should reload the page and get the new data from the server flask
         }
     async function refreshWatcherData() {
         document.getElementById('loadingIndicator').style.display = 'block';
