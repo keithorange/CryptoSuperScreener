@@ -12,9 +12,13 @@
 
 <body>
     <div class="navbar">
-        <a href="{{ url_for('index') }}">Screener</a>
-        <a href="{{ url_for('watcher') }}">Watcher</a>
+        <div class="logo">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo">
+        </div>
+        <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' else '' }}">Screener</a>
+        <a href="{{ url_for('watcher') }}" class="{{ 'active' if request.endpoint == 'watcher' else '' }}">Watcher</a>
     </div>
+
 
     <div class="container">
         <div id="loadingIndicator" style="display: none;">Loading...</div>

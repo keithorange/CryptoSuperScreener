@@ -90,7 +90,7 @@ async def index():
         # If there's an error with the filter, fall back to unfiltered data
         filtered_data = enriched_data
 
-    return render_template('index.html', favorites=favorites, enriched_data=filtered_data)
+    return render_template('index.html', favorites=favorites, enriched_data=filtered_data, filter_criteria=filter_criteria)
 
 
 
@@ -233,8 +233,8 @@ def toggle_favorite():
 @app.route('/watcher')
 async def watcher():
     page = request.args.get('page', 1, type=int)
-    grid_rows = request.args.get('grid_rows', 2, type=int)
-    grid_cols = request.args.get('grid_cols', 2, type=int)
+    grid_rows = request.args.get('grid_rows', 3, type=int)
+    grid_cols = request.args.get('grid_cols', 6, type=int)
 
     favorite_pairs = session.get('favorites', [])
     total_favorites = len(favorite_pairs)

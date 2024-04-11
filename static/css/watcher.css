@@ -39,17 +39,51 @@
     flex-wrap: wrap;
     gap: 20px;
     margin-bottom: 20px;
+    background-color: var(--section-background-color);
+        padding: 20px;
+        border-radius: 8px;
+}
+
+.form-section:nth-child(odd) {
+    background-color: var(--background-color);
+    /* Make every other section different */
+}
+
+:root {
+    /* Other variables */
+    --section-background-color: #1c1c1c;
+    /* Example: Dark gray */
+    --alternate-section-background-color: #474747;
+    /* Example: Slightly lighter gray */
+}
+
+.form-section {
+    background-color: var(--section-background-color);
+    /* Other styles */
+}
+
+.form-section:nth-of-type(odd) {
+    background-color: var(--alternate-section-background-color);
+}
+.form-section h3 {
+    font-size: var(--subtitle-size);
+    margin-bottom: var(--element-spacing);
+    color: var(--accent-color);
 }
 
 .form-section label,
 .form-section input,
 .form-section select,
 .form-section button {
+        margin-top: var(--element-spacing);
     flex: 1 1 200px;
     /* Each form element can grow but starts with a base width of 200px */
     margin-bottom: 10px;
     /* Add some space below each form element */
+    
 }
+
+
 
 /* Adjust button styling for better visibility and interactivity */
 button {
