@@ -61,6 +61,8 @@
 
     async function refreshScreenerData() {
         document.getElementById('loadingIndicator').style.display = 'block'; // Show loading indicator
+        startProgressBar(5 * 60 * 1000); // Start progress bar for 5 minutes
+
 
         try {
             // Fetch the list of pairs first
@@ -110,6 +112,17 @@
         }
     }
 
+
+    function startProgressBar(duration) {
+        const progressBar = document.getElementById('progressBar');
+        let start = Date.now();
+        let interval = setInterval(() => {
+            let timePassed = Date.now() - start;
+            let progress = timePassed / duration;
+            progressBar.style.width = progress * 100 + '%';
+            if (timePassed >= duration) clearInterval(interval);
+        }, 100);
+    }
     
     // This function initializes the table structure and refreshes screener data
     async function setupScreener() {

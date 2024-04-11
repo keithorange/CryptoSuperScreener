@@ -129,3 +129,41 @@ h1 {
 
 /* Importing Google Font - Roboto */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+#loadingIndicator {
+    display: none;
+    /* Hide by default, will be shown by JS */
+    font-size: 2em;
+    /* Large text */
+    color: var(--accent-color);
+    /* Colorful text */
+    animation: pulseAnimation 2s infinite;
+    /* Animation */
+}
+
+@keyframes pulseAnimation {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.progress-bar {
+    width: 0;
+    height: 30px;
+    background-color: var(--button-color);
+    transition: width 300ms;
+}
+
+.progress-container {
+    width: 100%;
+    background-color: #ddd;
+    margin: 20px 0;
+}

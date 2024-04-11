@@ -21,7 +21,11 @@
 
 
     <div class="container">
-        <div id="loadingIndicator" style="display: none;">Loading...</div>
+        <div id="loadingIndicator">Loading...</div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
         {% block content %}
 
         {% endblock %}
