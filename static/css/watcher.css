@@ -32,23 +32,6 @@
     width: 100%;
     /* Make charts use all available width */
 }
-
-/* Enhancements for form sections to be more responsive */
-.form-section {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-bottom: 20px;
-    background-color: var(--section-background-color);
-        padding: 20px;
-        border-radius: 8px;
-}
-
-.form-section:nth-child(odd) {
-    background-color: var(--background-color);
-    /* Make every other section different */
-}
-
 :root {
     /* Other variables */
     --section-background-color: #1c1c1c;
@@ -56,34 +39,6 @@
     --alternate-section-background-color: #474747;
     /* Example: Slightly lighter gray */
 }
-
-.form-section {
-    background-color: var(--section-background-color);
-    /* Other styles */
-}
-
-.form-section:nth-of-type(odd) {
-    background-color: var(--alternate-section-background-color);
-}
-.form-section h3 {
-    font-size: var(--subtitle-size);
-    margin-bottom: var(--element-spacing);
-    color: var(--accent-color);
-}
-
-.form-section label,
-.form-section input,
-.form-section select,
-.form-section button {
-        margin-top: var(--element-spacing);
-    flex: 1 1 200px;
-    /* Each form element can grow but starts with a base width of 200px */
-    margin-bottom: 10px;
-    /* Add some space below each form element */
-    
-}
-
-
 
 /* Adjust button styling for better visibility and interactivity */
 button {
@@ -105,10 +60,6 @@ button:hover {
         /* Adjust column size for smaller screens */
     }
 
-    .form-section {
-        justify-content: center;
-        /* Center form elements on smaller screens */
-    }
 }
 
 .grid-item:hover {
@@ -183,4 +134,114 @@ button:hover {
 
 .grid-settings button:hover {
     background-color: var(--button-hover-color);
+}
+
+/* Variables for easy theme adjustments */
+:root {
+    /* Color Palette */
+    --background-color: #121212;
+    --text-color: #E0E0E0;
+    --accent-color: #BB86FC;
+    --button-color: #03DAC6;
+    --button-hover-color: #018786;
+    --table-header-color: #3700B3;
+    --link-color: #03DAC5;
+    --hover-color: #292929;
+    --gold-color: gold;
+
+    /* Typography */
+    --font-family: 'Roboto', sans-serif;
+
+    /* Spacing */
+    --container-padding: 20px;
+    --element-spacing: 10px;
+    --form-element-flex-basis: 200px;
+    /* Default width of form elements */
+
+    /* Other */
+    --section-background-color: #1c1c1c;
+    --alternate-section-background-color: #474747;
+    --subtitle-size: 1.5em;
+}
+
+/* Form section general styling */
+.form-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--element-spacing);
+    margin-bottom: var(--element-spacing);
+    padding: var(--element-spacing);
+    border-radius: 8px;
+    background-color: var(--section-background-color);
+}
+
+/* Style for the odd sections for differentiation */
+.form-section:nth-of-type(odd) {
+    background-color: var(--alternate-section-background-color);
+}
+
+/* Section titles */
+.form-section h3 {
+    width: 100%;
+    /* Ensure the title takes the full width */
+    font-size: var(--subtitle-size);
+    color: var(--accent-color);
+    margin-bottom: var(--element-spacing);
+}
+
+/* Style each form element to sit side by side */
+.form-section label,
+.form-section input,
+.form-section select,
+.form-section button {
+    flex: 1 1 var(--form-element-flex-basis);
+    margin-bottom: var(--element-spacing);
+}
+
+/* Specific button styles */
+button {
+    background-color: var(--button-color);
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+}
+
+/* Special styling for the Refresh Charts button */
+.refresh-button {
+    background-color: var(--gold-color);
+    color: #121212;
+    padding: 10px 20px;
+    font-weight: bold;
+}
+
+/* Interaction styles */
+button:hover,
+.pagination a:hover {
+    background-color: var(--button-hover-color);
+}
+
+/* Layout adjustments for small screens */
+@media (max-width: 768px) {
+    .form-section {
+        flex-direction: column;
+    }
+
+    .form-section label,
+    .form-section input,
+    .form-section select,
+    .form-section button {
+        flex-basis: auto;
+        /* Allow elements to take the necessary width */
+    }
+}
+
+.watcher-form-sections {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    /* Adjusts space between the form sections */
+    gap: 60px;
+    /* Optional: If you want additional space around items */
 }
