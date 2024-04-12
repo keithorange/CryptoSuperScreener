@@ -396,11 +396,11 @@
     var editor = CodeMirror.fromTextArea(document.getElementById('filterCode'), {
         mode: 'python',
         lineNumbers: true,
-        value: "// To use write something to filter the data by python lambda like: \nx['bid_ask_spread'] < 0.003\n"
+        value: "x['bid_ask_spread'] < 0.003"
     });
 
     // Set default text if the editor is empty
-    editor.setValue("// To use write something to filter the data by python lambda like: \nx['bid_ask_spread'] < 0.003\n");
+    editor.setValue("x['bid_ask_spread'] < 0.003");
 
     // Focus and place cursor at the end of the default text
     editor.focus();
