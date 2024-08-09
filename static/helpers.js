@@ -39,79 +39,130 @@ async function calculateIndicators(closes, hmaPeriod, emaPeriod) {
     const hma = calculateHMA(closes, hmaPeriod);
 
     const ema = await ta.ema(closes, emaPeriod);
-    console.log(ema);
 
     // Continue your chart generation logic here using `hma` and `ema`
     return { hma, ema };
 }
-
-function generateFullChart(pair, ohlcvData, hmaPeriod = null, emaPeriod = null) {
-    // Default period values are set
-    hmaPeriod = hmaPeriod || parseInt(document.getElementById('hmaPeriodInput').value, 10) || 12;
-    emaPeriod = emaPeriod || parseInt(document.getElementById('emaPeriodInput').value, 10) || 42;
-
-    const chartDiv = document.getElementById(`watcher_chart_${pair}`);
-
-    // Convert timestamps to index for x-axis
-    const xData = ohlcvData.map((_, index) => index);
-
-    const opens = ohlcvData.map(entry => entry.open);
-    const highs = ohlcvData.map(entry => entry.high);
-    const lows = ohlcvData.map(entry => entry.low);
-    const closes = ohlcvData.map(entry => entry.close);
-
-    // Calculate indicators and plot the chart
-    calculateIndicators(closes, hmaPeriod, emaPeriod).then(({ hma, ema }) => {
-        const candlestickTrace = {
-            type: 'candlestick',
-            x: xData,
-            open: opens,
-            high: highs,
-            low: lows,
-            close: closes
-        };
-
-        const hmaTrace = {
-            x: xData,
-            y: hma,
-            mode: 'lines',
-            name: 'HMA',
-            line: { color: 'orange', width: 3}
-        };
-
-        const emaTrace = {
-            x: xData,
-            y: ema,
-            mode: 'lines',
-            name: 'EMA',
-            line: { color: 'lightblue', width: 3 }
-        };
-
-        const layout = {
-            margin: { l: 10, r: 10, b: 10, t: 10 },
-            xaxis: {
-                visible: true,
-                showgrid: false,
-                showticklabels: false,
-                tickfont: { size: 8 },
-                rangeslider: { visible: false }
-            },
-            yaxis: {
-                visible: true,
-                showgrid: false,
-                showticklabels: false,
-                tickfont: { size: 8 }
-            },
-            showlegend: false,
-            dragmode: 'zoom',
-            plot_bgcolor: 'rgba(0,0,0,0)', // Set plot background to transparent
-            paper_bgcolor: 'rgba(0,0,0,0)', // Set paper background to transparent
-        };
-
-        Plotly.newPlot(chartDiv, [candlestickTrace, hmaTrace, emaTrace], layout);
-    }); // Corrected the syntax here
+function applyChartOptions() {
+    const showHMA = document.getElementById('hmaToggle').checked;
+    const showEMA = document.getElementById('emaToggle').checked;
+    const useHeikinAshi = document.getElementById('heikinAshiToggle').checked;
+    
+    // Refresh all charts with new options
+    Object.entries(favoritePairsData).forEach(([pair, data]) => {
+        generateFullChart(pair, data, showHMA, showEMA, useHeikinAshi);
+    });
 }
 
+async function generateFullChart(pair, ohlcvData) {
+    const showHMA = document.getElementById('hmaToggle').checked;
+    const showEMA = document.getElementById('emaToggle').checked;
+    const useHeikinAshi = document.getElementById('heikinAshiToggle').checked;
+
+    console.log('showHMA', showHMA);
+    console.log('showEMA', showEMA);
+    console.log('useHeikinAshi', useHeikinAshi);
+
+    const hmaPeriod = parseInt(document.getElementById('hmaPeriodInput').value, 10) || 12;
+    const emaPeriod = parseInt(document.getElementById('emaPeriodInput').value, 10) || 42;
+    const chartDiv = document.getElementById(`watcher_chart_${pair}`);
+
+    let xData, opens, highs, lows, closes;
+
+    if (useHeikinAshi) {
+        const haData = calculateHeikinAshi(ohlcvData);
+        xData = haData.map((_, index) => index);
+        opens = haData.map(candle => candle.open);
+        highs = haData.map(candle => candle.high);
+        lows = haData.map(candle => candle.low);
+        closes = haData.map(candle => candle.close);
+    } else {
+        xData = ohlcvData.map((_, index) => index);
+        opens = ohlcvData.map(entry => entry.open);
+        highs = ohlcvData.map(entry => entry.high);
+        lows = ohlcvData.map(entry => entry.low);
+        closes = ohlcvData.map(entry => entry.close);
+    }
+
+    const candlestickTrace = {
+        type: 'candlestick',
+        x: xData,
+        open: opens,
+        high: highs,
+        low: lows,
+        close: closes
+    };
+
+    const traces = [candlestickTrace];
+
+    if (showHMA || showEMA) {
+        const { hma, ema } = await calculateIndicators(closes, hmaPeriod, emaPeriod);
+
+        if (showHMA) {
+            const hmaTrace = {
+                x: xData,
+                y: hma,
+                mode: 'lines',
+                name: 'HMA',
+                line: { color: 'orange', width: 1 }
+            };
+            traces.push(hmaTrace);
+        }
+
+        if (showEMA) {
+            const emaTrace = {
+                x: xData,
+                y: ema,
+                mode: 'lines',
+                name: 'EMA',
+                line: { color: 'lightblue', width: 1 }
+            };
+            traces.push(emaTrace);
+        }
+    }
+
+    const layout = {
+        margin: { l: 5, r: 5, b: 5, t: 5 },
+        xaxis: {
+            visible: true,
+            showgrid: false,
+            showticklabels: false,
+            tickfont: { size: 8 },
+            rangeslider: { visible: false }
+        },
+        yaxis: {
+            visible: true,
+            showgrid: false,
+            showticklabels: false,
+            tickfont: { size: 8 }
+        },
+        showlegend: false,
+        dragmode: 'zoom',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+    };
+
+    Plotly.newPlot(chartDiv, traces, layout);
+}
+
+
+function calculateHeikinAshi(ohlcvData) {
+    const haData = [];
+    
+    for (let i = 0; i < ohlcvData.length; i++) {
+        const current = ohlcvData[i];
+        const prev = i > 0 ? haData[i - 1] : current;
+        
+        const haClose = (current.open + current.high + current.low + current.close) / 4;
+        const haOpen = i === 0 ? (current.open + current.close) / 2 : (prev.open + prev.close) / 2;
+        const haHigh = Math.max(current.high, haOpen, haClose);
+        const haLow = Math.min(current.low, haOpen, haClose);
+        
+        haData.push({ open: haOpen, high: haHigh, low: haLow, close: haClose });
+    }
+    
+    return haData;
+}
 
 // Utility function to calculate SMA
 function calculateSMA(data, window) {

@@ -15,9 +15,9 @@
 .grid-item {
     background-color: var(--background-color);
     color: var(--text-color);
-    border: 1px solid var(--accent-color);
-    border-radius: 10px;
-    padding: 20px;
+    /* border: 1px solid var(--alternate-section-background-color);
+    border-radius: 5px; */
+    padding: 5px;
     display: flex;
     flex-direction: column;
     /* Stack child elements vertically */
@@ -32,6 +32,7 @@
     width: 100%;
     /* Make charts use all available width */
 }
+
 :root {
     /* Other variables */
     --section-background-color: #1c1c1c;
@@ -54,6 +55,7 @@ button {
 button:hover {
     background-color: var(--button-hover-color);
 }
+
 @media (max-width: 768px) {
     .grid {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -70,18 +72,19 @@ button:hover {
 
 
 /* Remove Favorite Button */
-.grid-item button.remove-favorite {
-    padding: 10px 20px;
-    background-color: var(--button-color);
-    color: #000;
-    border: none;
+.removeButton {
+    padding: 5px 10px;
+    /* Reduce padding to make the button smaller */
+    background-color: #2a2a2a;;
+    color: #fff;
     border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease-in-out;
+    font-size: var(--font-size-small);
+    /* Use a smaller font size */
+    font-weight: bold;
 }
 
-.grid-item button.remove-favorite:hover {
-    background-color: var(--button-hover-color);
+.removeButton:hover {
+    background-color: red;
 }
 
 /* Pagination */
@@ -136,33 +139,6 @@ button:hover {
     background-color: var(--button-hover-color);
 }
 
-/* Variables for easy theme adjustments */
-:root {
-    /* Color Palette */
-    --background-color: #121212;
-    --text-color: #E0E0E0;
-    --accent-color: #BB86FC;
-    --button-color: #03DAC6;
-    --button-hover-color: #018786;
-    --table-header-color: #3700B3;
-    --link-color: #03DAC5;
-    --hover-color: #292929;
-    --gold-color: gold;
-
-    /* Typography */
-    --font-family: 'Roboto', sans-serif;
-
-    /* Spacing */
-    --container-padding: 20px;
-    --element-spacing: 10px;
-    --form-element-flex-basis: 200px;
-    /* Default width of form elements */
-
-    /* Other */
-    --section-background-color: #1c1c1c;
-    --alternate-section-background-color: #474747;
-    --subtitle-size: 1.5em;
-}
 
 /* Form section general styling */
 .form-section {
@@ -242,6 +218,6 @@ button:hover,
     flex-direction: row;
     justify-content: space-between;
     /* Adjusts space between the form sections */
-    gap: 60px;
+    gap: 10px;
     /* Optional: If you want additional space around items */
 }

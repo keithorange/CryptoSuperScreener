@@ -109,42 +109,36 @@ logging.basicConfig(level=logging.INFO,
 
 async def process_in_batches(task_func, items, batch_size, MAX_TRIES=10):
     results = []
-    errors = defaultdict(int)  # Dictionary to keep track of retries per item
-    pending_items = items[:]  # Copy of items to maintain a pending list
+    errors = defaultdict(int)
+    pending_items = items[:]
     total_batches = (len(items) + batch_size - 1) // batch_size
 
-    # Initialize the progress bar
     progress_bar = tqdm(total=total_batches)
 
     while pending_items:
-        batch = pending_items[:batch_size]  # Get the current batch
-        pending_items = pending_items[batch_size:]  # Update the pending list
+        batch = pending_items[:batch_size]
+        pending_items = pending_items[batch_size:]
 
         tasks = [task_func(item) for item in batch]
         batch_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Process results and errors
         for item, result in zip(batch, batch_results):
             if isinstance(result, Exception):
                 errors[item] += 1
                 if errors[item] < MAX_TRIES:
-                    logging.error(f"Error processing {item}: {result}, retrying ({errors[item]}/{MAX_TRIES})...")
-                    # Retry this item in the next iteration
+                    logging.error(f"Error processing {item}: {
+                                  result}, retrying ({errors[item]}/{MAX_TRIES})...")
                     pending_items.append(item)
                 else:
                     logging.error(f"Max retries exceeded for {item}: {result}")
             else:
-                results.append((item ,result[1]))
+                results.append((item, result[1]))
 
-        # Update the progress bar after each batch
         progress_bar.update(1)
 
-    # Close the progress bar when done
     progress_bar.close()
-
-
-    #print(results)  # Add this for debugging
     return results
+
 
 @app.route('/get_enriched_ohlcv', methods=['POST'])
 async def get_enriched_ohlcv():
@@ -153,7 +147,7 @@ async def get_enriched_ohlcv():
     timeframe = data.get('timeframe', '5m')
     if timeframe not in ['1m', '5m', '15m', '30m', '1h', '4h', '1d']:
         return jsonify({'error': 'Invalid timeframe'}), 400
-    
+
     length = data.get('length', 120)
 
     if not pairs:
@@ -164,23 +158,20 @@ async def get_enriched_ohlcv():
     async def fetch_and_process(pair):
         async with ccxt_async.kraken() as exchange:
             ohlcv_df = await fetch_ohlcv_data_async(pair, exchange, timeframe, length)
-            return pair, add_custom_properties(ohlcv_df).to_dict('records')
+            enriched_df = add_custom_properties(ohlcv_df)
+            return pair, enriched_df.to_dict('records')
 
     try:
-        # Use the updated 'process_in_batches' with retry logic
-        results = await process_in_batches(fetch_and_process, pairs, batch_size=300)
-        
-        for pair, ohlcv_data in results:
-            enriched_data[pair] = ohlcv_data  # Directly assign the OHLCV data here
-            
-    except Exception as e:
-        return jsonify({'error': f"{str(e)} and enriched_data {enriched_data} and results = {results}" }), 400
+        # Adjust batch_size as needed
+        results = await process_in_batches(fetch_and_process, pairs, batch_size=40)
 
-    
+        for pair, ohlcv_data in results:
+            enriched_data[pair] = ohlcv_data
+
+    except Exception as e:
+        return jsonify({'error': f"{str(e)} and enriched_data {enriched_data} and results = {results}"}), 400
+
     session['enriched_data'] = enriched_data
-    # Before returning, construct the final dictionary correctly
-    
-    # return jsonify(enriched_data)
     return jsonify({'message': 'Data fetched and enriched successfully IN SESSION.'}), 200
 
 
@@ -234,7 +225,7 @@ def toggle_favorite():
 async def watcher():
     page = request.args.get('page', 1, type=int)
     grid_rows = request.args.get('grid_rows', 3, type=int)
-    grid_cols = request.args.get('grid_cols', 6, type=int)
+    grid_cols = request.args.get('grid_cols', 3, type=int)
 
     favorite_pairs = session.get('favorites', [])
     total_favorites = len(favorite_pairs)
@@ -271,43 +262,6 @@ def filter_data():
     # Store the filter criteria in the session
     session['filter_criteria'] = filter_string
     return jsonify({'message': 'Filter criteria updated successfully'})
-
-
-# # Configure logging
-# logging.basicConfig(level=logging.DEBUG)
-
-# # Define a handler which writes INFO messages or higher to sys.stderr
-# console = logging.StreamHandler()
-# console.setLevel(logging.DEBUG)
-
-# # Set a format which is simpler for console use
-# formatter = logging.Formatter(
-#     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# console.setFormatter(formatter)
-
-# # Add the handler to the root logger
-# logging.getLogger('').addHandler(console)
-
-
-# Existing Flask setup code...
-
-
-# @app.before_request
-# def log_request_info():
-#     if request.method == 'POST':
-#         app.logger.debug('Headers: %s', request.headers)
-#         #app.logger.debug('Body: %s', request.get_data())
-
-
-# @app.after_request
-# def log_response_info(response):
-#     if request.method == 'POST':
-#         #app.logger.debug('Response status: %s', response.status)
-#         app.logger.debug('Response headers: %s', response.headers)
-#         #app.logger.debug('Response body: %s', response.get_data())
-#     return response
-
-# # Existing Flask app routes...
 
 
 

@@ -1,27 +1,47 @@
-/* base.css - Modern Sleek Crypto Theme */
-
+/* Variables for easy theme adjustments */
 :root {
     /* Color Palette */
     --background-color: #121212;
+    /* Dark background */
     --text-color: #E0E0E0;
+    /* Light text color */
     --accent-color: #BB86FC;
-    --button-color: #03DAC6;
-    --button-hover-color: #018786;
-    --table-header-color: #3700B3;
-    --link-color: #03DAC5;
-    --hover-color: #292929;
+    /* Soft accent color */
+    --button-color: #1E90FF;
+    /* Blue for buttons */
+    --button-hover-color: #1C86EE;
+    /* Slightly darker blue for button hover */
+    --table-header-color: #1E1E1E;
+    /* Dark grey for table headers */
+    --link-color: #4682B4;
+    /* Steel blue for links */
+    --hover-color: #2E2E2E;
+    /* Dark grey for hover states */
+    --gold-color: gold;
 
     /* Typography */
-    --font-family: 'Roboto', sans-serif;
+    --font-family: Arial, sans-serif;
+    /* Built-in font */
+    --font-size-base: 16px;
+    /* Base font size */
+    --font-size-large: 1.25em;
+    /* Large font size for headers */
+    --font-size-small: 0.875em;
+    /* Small font size for less important text */
 
     /* Spacing */
     --container-padding: 20px;
-    --element-spacing: 10px;
+    /* Padding for containers */
+    --element-spacing: 5px;
+    /* Spacing between elements */
+    --form-element-flex-basis: 200px;
+    /* Default width of form elements */
 
-
-    /* ... existing variables ... */
-    --section-background-color: #1c1c1c;
-    /* Or any other color that fits your theme */
+    /* Other */
+    --section-background-color: #1C1C1C;
+    /* Dark section background */
+    --alternate-section-background-color: #2E2E2E;
+    /* Slightly lighter for alternating sections */
     --subtitle-size: 1.5em;
     /* Subtitle size */
 }

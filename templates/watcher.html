@@ -5,7 +5,9 @@
 
 <!-- Technical indicators https://github.com/ixjb94/indicators -->
 
-<script src="https://unpkg.com/@ixjb94/indicators@latest/dist/indicators-browser.js"></script>
+<!-- all versions -->
+<script src="https://unpkg.com/@ixjb94/indicators@latest/dist/browser.js"></script>
+
 {% endblock %}
 
 
@@ -18,17 +20,19 @@
     <div class="form-section chart-setup">
         <h3>Chart Setup</h3>
         <label for="lengthInput">Length (Periods):</label>
-        <input type="number" id="lengthInput" value="360" min="1"> <!-- Default value set to 120 -->
+        <input type="number" id="lengthInput" value="800" min="1"> <!-- Default value set to 120 -->
 
         <label for="timeframeInput">Timeframe:</label>
         <select id="timeframeInput">
-            <option value="1m">1 Minute</option>
-            <option value="5m" selected>5 Minutes</option>
+            <option value="1m" selected>1 Minute</option>
+            <option value="5m">5 Minutes</option>
             <option value="15m">15 Minutes</option>
-            <option value="1h" >1 Hour</option>
+            <option value="1h">1 Hour</option>
             <option value="6h">6 Hours</option>
             <option value="1d">1 Day</option>
         </select>
+        <label><input type="checkbox" id="autoRefreshToggle" checked> Auto Refresh </label>
+
         <button onclick="refreshWatcherData()" class="form-button refresh-button">Refresh Charts</button>
     </div>
 
@@ -41,6 +45,12 @@
 
         <label for="emaPeriodInput">EMA Period:</label>
         <input type="number" id="emaPeriodInput" value="42" min="2"> <!-- Default value set to 20 -->
+        
+        <h3>Chart Options</h3>
+        <label><input type="checkbox" id="hmaToggle"> Show HMA</label>
+        <label><input type="checkbox" id="emaToggle"> Show EMA</label>
+        <label><input type="checkbox" id="heikinAshiToggle" checked> Use Heikin Ashi</label>
+        
         <button onclick="reapplyIndicators()">Apply Indicators</button>
     </div>
 
@@ -80,24 +90,25 @@
     document.addEventListener('DOMContentLoaded', () => {
         populateWatcherCharts(favoritePairsData);
         populateGrid();
+        setupAutoRefresh(); // Call the setup function on page load
     });
     document.getElementById('applyGridSettings').addEventListener('click', populateGrid);
 
-        function reloadPageGetNewFlaskData() {
-                // This function will reload the page and get the new data from the server
-                // This will be useful when you want to refresh the data on the page
-                // without using AJAX or any other client-side data fetching method
-                setTimeout(function () {
-                    window.location.reload();
-                }, 10); // Adjust the delay as needed
-            }
+    function reloadPageGetNewFlaskData() {
+        // This function will reload the page and get the new data from the server
+        // This will be useful when you want to refresh the data on the page
+        // without using AJAX or any other client-side data fetching method
+        setTimeout(function () {
+            window.location.reload();
+        }, 10); // Adjust the delay as needed
+    }
 
-  function populateGrid() {
+    function populateGrid() {
         const rows = parseInt(document.getElementById('gridRows').value, 10) || 2;
         const cols = parseInt(document.getElementById('gridCols').value, 10) || 2;
 
 
-      
+
 
 
         const itemsPerPage = rows * cols;
@@ -121,7 +132,7 @@
             gridItem.innerHTML = `
             <h2>${pair}</h2>
             <div id="watcher_chart_${pair}" style="width: 400px; height: 300px;"></div>
-            <button onclick="removeFavorite('${pair}')">Remove from Favorites</button>
+            <button onclick="removeFavorite('${pair}')" class="removeButton">Remove</button>
         `;
             container.appendChild(gridItem);
         });
@@ -152,9 +163,35 @@
         }
     }
 
+
+
+    function setupAutoRefresh() {
+        const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+        
+        // Listen for changes on the checkbox
+        autoRefreshToggle.addEventListener('change', function() {
+            if (this.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        });
+    }
+
+    function startAutoRefresh() {
+        autoRefreshInterval = setInterval(refreshWatcherData, 60000); // Refresh every 60 seconds (60000ms)
+    }
+
+    function stopAutoRefresh() {
+        clearInterval(autoRefreshInterval); // Stop the interval
+    }
+
+
+
     function reapplyIndicators() {
-            reloadPageGetNewFlaskData(); // should reload the page and get the new data from the server flask
-        }
+        reloadPageGetNewFlaskData(); // should reload the page and get the new data from the server flask
+    }
+    
     async function refreshWatcherData() {
         document.getElementById('loadingIndicator').style.display = 'block';
 
